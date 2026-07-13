@@ -76,6 +76,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  container-type: size;
 }
 
 .media-stack-media {
@@ -90,6 +91,9 @@
 }
 
 .media-stack-media.rotated {
+  position: absolute;
+  width: 100cqh;
+  height: 100cqw;
   transform: rotate(90deg);
   object-fit: cover;
 }
