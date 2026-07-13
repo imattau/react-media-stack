@@ -108,7 +108,7 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
 
       for (let i = start; i <= end; i++) {
         const item = items[i];
-        if (item.type !== 'video' || objectUrlMap.current.has(item.src)) {
+        if (item.type !== 'video' || objectUrlMap.current.has(item.src) || item.src.includes('.m3u8')) {
           continue;
         }
 

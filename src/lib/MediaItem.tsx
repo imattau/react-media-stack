@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import type { MediaItemData } from './types';
 import { useVideoCache } from './VideoCacheContext';
 import * as Overlays from './Overlays';
+import Hls from 'hls.js';
 
 interface MediaItemProps {
   item: MediaItemData;
@@ -64,6 +65,8 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const [fps, setFps] = useState(60);
   const [bufferHealth, setBufferHealth] = useState(0);
 
+  const hlsRef = useRef<Hls | null>(null);
+
   const { getPlaybackState, savePlaybackState, getMediaUrl } = useVideoCache();
 
   // Tier 1 Restore Playback Micro-state on mount
@@ -79,7 +82,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     };
   }, []);
 
-  // Save state on unmount
+  // Save state and destroy HLS instance on unmount
   useEffect(() => {
     return () => {
       const video = videoRef.current;
@@ -89,6 +92,10 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           captionExpanded,
         });
       }
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
     };
   }, [item.id, item.type, savePlaybackState, captionExpanded]);
 
@@ -97,17 +104,49 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     const video = videoRef.current;
     if (!video || item.type !== 'video') return;
 
-    if (shouldLoad) {
-      // Re-attach video source: resolve through cache map (uses Blob URL if cached)
-      const resolvedSrc = getMediaUrl(item.src);
-      if (!video.src || video.src === '' || !video.src.includes(resolvedSrc)) {
-        video.src = resolvedSrc;
-        video.load();
+    const isHls = item.src.endsWith('.m3u8') || item.src.includes('.m3u8');
 
-        // Restore cached playtime index
-        const cached = getPlaybackState(item.id);
-        if (cached && cached.currentTime > 0) {
-          video.currentTime = cached.currentTime;
+    if (shouldLoad) {
+      if (isHls) {
+        if (Hls.isSupported()) {
+          if (!hlsRef.current) {
+            const hls = new Hls({
+              maxMaxBufferLength: 10,
+            });
+            hlsRef.current = hls;
+            hls.loadSource(item.src);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+              const cached = getPlaybackState(item.id);
+              if (cached && cached.currentTime > 0) {
+                video.currentTime = cached.currentTime;
+              }
+            });
+          }
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          // Native Apple Safari HLS support
+          if (video.src !== item.src) {
+            video.src = item.src;
+            video.load();
+            const cached = getPlaybackState(item.id);
+            if (cached && cached.currentTime > 0) {
+              video.currentTime = cached.currentTime;
+            }
+          }
+        }
+      } else {
+        // Standard video source (pre-fetched blobs or network URLs)
+        const resolvedSrc = getMediaUrl(item.src);
+        if (!video.src || video.src === '' || !video.src.includes(resolvedSrc)) {
+          video.src = resolvedSrc;
+          video.load();
+
+          // Restore cached playtime index
+          const cached = getPlaybackState(item.id);
+          if (cached && cached.currentTime > 0) {
+            video.currentTime = cached.currentTime;
+          }
         }
       }
 
@@ -137,6 +176,12 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       // Release resources
       video.pause();
       setIsPlaying(false);
+      
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
       video.removeAttribute('src');
       video.load();
     }
