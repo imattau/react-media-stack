@@ -68,6 +68,8 @@ function App() {
   const [hideScrollbar, setHideScrollbar] = useState(true);
   const [showNavArrows, setShowNavArrows] = useState(true);
   const [autoRotateLandscape, setAutoRotateLandscape] = useState(true);
+  const [showDevHud, setShowDevHud] = useState(true);
+  const [customButtons, setCustomButtons] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const [logs, setLogs] = useState<LogMessage[]>([
@@ -149,6 +151,29 @@ function App() {
               onShareClick={handleShare}
               onCommentClick={handleComment}
               autoRotateLandscape={autoRotateLandscape}
+              showDevHud={showDevHud}
+              renderLikeButton={customButtons ? (isActive, onClick) => (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onClick(); }}
+                  className="media-stack-icon-btn rvf-pointer-events-auto"
+                  style={{ background: isActive ? 'rgba(255,0,128,0.3)' : 'rgba(255,0,128,0.1)', borderColor: '#ff0080' }}
+                  aria-label="Like"
+                >
+                  💖
+                </button>
+              ) : undefined}
+              renderCommentButton={customButtons ? (onClick) => (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onClick(); }}
+                  className="media-stack-icon-btn rvf-pointer-events-auto"
+                  style={{ background: 'rgba(0,200,255,0.1)', borderColor: '#00c8ff' }}
+                  aria-label="Reply"
+                >
+                  💬
+                </button>
+              ) : undefined}
             />
           </div>
         </div>
@@ -353,6 +378,60 @@ function App() {
                     onClick={() => {
                       setAutoRotateLandscape(false);
                       addLog('Disabled auto-rotation for landscape media.');
+                    }}
+                  >
+                    OFF
+                  </button>
+                </div>
+              </div>
+
+              {/* Developer HUD */}
+              <div className="config-row">
+                <span className="config-label">Developer Performance HUD</span>
+                <div className="btn-toggle-group">
+                  <button
+                    type="button"
+                    className={`btn-toggle ${showDevHud ? 'active' : ''}`}
+                    onClick={() => {
+                      setShowDevHud(true);
+                      addLog('Developer Performance HUD enabled.');
+                    }}
+                  >
+                    ON
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn-toggle ${!showDevHud ? 'active' : ''}`}
+                    onClick={() => {
+                      setShowDevHud(false);
+                      addLog('Developer Performance HUD disabled.');
+                    }}
+                  >
+                    OFF
+                  </button>
+                </div>
+              </div>
+
+              {/* Custom Overlay Buttons Slots */}
+              <div className="config-row">
+                <span className="config-label">Slots Custom Buttons (Overlay)</span>
+                <div className="btn-toggle-group">
+                  <button
+                    type="button"
+                    className={`btn-toggle ${customButtons ? 'active' : ''}`}
+                    onClick={() => {
+                      setCustomButtons(true);
+                      addLog('Slots Button overrides enabled (💖/💬 custom slots).');
+                    }}
+                  >
+                    ON
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn-toggle ${!customButtons ? 'active' : ''}`}
+                    onClick={() => {
+                      setCustomButtons(false);
+                      addLog('Default overlay action buttons restored.');
                     }}
                   >
                     OFF

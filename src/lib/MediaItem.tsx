@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import type { MediaItemData } from './types';
+import { useVideoCache } from './VideoCacheContext';
+import * as Overlays from './Overlays';
 
 interface MediaItemProps {
   item: MediaItemData;
@@ -20,6 +22,10 @@ interface MediaItemProps {
   showSidebarActions?: boolean;
   showMetaInfo?: boolean;
   autoRotateLandscape?: boolean;
+  renderLikeButton?: (isActive: boolean, onClick: () => void) => React.ReactNode;
+  renderCommentButton?: (onClick: () => void) => React.ReactNode;
+  renderShareButton?: (onClick: () => void) => React.ReactNode;
+  showDevHud?: boolean;
 }
 
 export const MediaItem: React.FC<MediaItemProps> = ({
@@ -41,6 +47,10 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   showSidebarActions = true,
   showMetaInfo = true,
   autoRotateLandscape = false,
+  renderLikeButton,
+  renderCommentButton,
+  renderShareButton,
+  showDevHud = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +60,17 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const [isLandscape, setIsLandscape] = useState(false);
   const feedbackTimeout = useRef<number | null>(null);
 
-  // Clean up timeouts on unmount to prevent leaks
+  // Dev HUD States
+  const [fps, setFps] = useState(60);
+  const [bufferHealth, setBufferHealth] = useState(0);
+
+  const { getPlaybackState, savePlaybackState, getMediaUrl } = useVideoCache();
+
+  // Tier 1 Restore Playback Micro-state on mount
+  const cachedState = getPlaybackState(item.id);
+  const [captionExpanded, setCaptionExpanded] = useState(cachedState?.captionExpanded ?? false);
+
+  // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
       if (feedbackTimeout.current) {
@@ -59,16 +79,36 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     };
   }, []);
 
-  // Playback coordination and memory management
+  // Save state on unmount
+  useEffect(() => {
+    return () => {
+      const video = videoRef.current;
+      if (video && item.type === 'video') {
+        savePlaybackState(item.id, {
+          currentTime: video.currentTime,
+          captionExpanded,
+        });
+      }
+    };
+  }, [item.id, item.type, savePlaybackState, captionExpanded]);
+
+  // Playback coordination and Tier 2 object URL binding
   useEffect(() => {
     const video = videoRef.current;
     if (!video || item.type !== 'video') return;
 
     if (shouldLoad) {
-      // Re-attach video source if it was previously unloaded/cleared
-      if (!video.src || video.src === '') {
-        video.src = item.src;
+      // Re-attach video source: resolve through cache map (uses Blob URL if cached)
+      const resolvedSrc = getMediaUrl(item.src);
+      if (!video.src || video.src === '' || !video.src.includes(resolvedSrc)) {
+        video.src = resolvedSrc;
         video.load();
+
+        // Restore cached playtime index
+        const cached = getPlaybackState(item.id);
+        if (cached && cached.currentTime > 0) {
+          video.currentTime = cached.currentTime;
+        }
       }
 
       if (isActive && autoPlay) {
@@ -88,13 +128,19 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         setIsPlaying(false);
       }
     } else {
-      // Release resources: Pause and wipe src to free up video decoder memory
+      // Save state immediately before unloading element source
+      savePlaybackState(item.id, {
+        currentTime: video.currentTime,
+        captionExpanded,
+      });
+
+      // Release resources
       video.pause();
       setIsPlaying(false);
       video.removeAttribute('src');
       video.load();
     }
-  }, [isActive, shouldLoad, autoPlay, item.type, item.src]);
+  }, [isActive, shouldLoad, autoPlay, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, captionExpanded]);
 
   // Sync mute state
   useEffect(() => {
@@ -103,11 +149,48 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     }
   }, [muted]);
 
+  // Calculate FPS (Developer HUD helper)
+  useEffect(() => {
+    if (!isActive || !showDevHud) return;
+    let lastTime = performance.now();
+    let frames = 0;
+    let frameId: number;
+
+    const tick = () => {
+      frames++;
+      const now = performance.now();
+      if (now >= lastTime + 1000) {
+        setFps(Math.round((frames * 1000) / (now - lastTime)));
+        frames = 0;
+        lastTime = now;
+      }
+      frameId = requestAnimationFrame(tick);
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [isActive, showDevHud]);
+
   const handleTimeUpdate = () => {
     const video = videoRef.current;
     if (video) {
+      // Update progress bar
       const pct = (video.currentTime / video.duration) * 100;
       setProgress(isNaN(pct) ? 0 : pct);
+
+      // Update buffer health metrics
+      const current = video.currentTime;
+      const buffered = video.buffered;
+      let health = 0;
+      for (let i = 0; i < buffered.length; i++) {
+        const start = buffered.start(i);
+        const end = buffered.end(i);
+        if (current >= start && current <= end) {
+          health = end - current;
+          break;
+        }
+      }
+      setBufferHealth(health);
     }
   };
 
@@ -154,32 +237,35 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     video.currentTime = seekTime;
   };
 
-  // Render SVG icons for UI controls
   const renderMuteIcon = () => {
     if (muted) {
       return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="1" y1="1" x2="23" y2="23"></line>
           <path d="M9 9v6a3 3 0 0 0 3 3h1.586l4.707 4.707A1 1 0 0 0 20 22V4a1 1 0 0 0-1.707-.707L13.586 8H12a3 3 0 0 0-3 3z"></path>
         </svg>
       );
     }
     return (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
         <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
       </svg>
     );
   };
 
+  // Check if current source matches cache Blob Object URL
+  const resolvedMediaSrc = getMediaUrl(item.src);
+  const isCached = resolvedMediaSrc.startsWith('blob:');
+
   return (
-    <div className="media-stack-item-wrapper">
+    <div className="media-stack-item-wrapper rvf-relative rvf-w-full rvf-h-full">
       {shouldLoad ? (
-        <div className="media-stack-media-container" onClick={handleVideoClick}>
+        <div className="media-stack-media-container rvf-relative rvf-w-full rvf-h-full" onClick={handleVideoClick}>
           {item.type === 'video' ? (
             <video
               ref={videoRef}
-              src={item.src}
+              src={resolvedMediaSrc}
               poster={item.poster}
               className={`media-stack-media ${item.fit || 'contain'} ${autoRotateLandscape && isLandscape ? 'rotated' : ''}`}
               loop={loop}
@@ -213,39 +299,38 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
           {/* Loading Spinner */}
           {isLoading && (
-            <div className="media-stack-loading">
-              <div className="media-stack-spinner" />
+            <div className="media-stack-loading rvf-absolute rvf-top-1/2 rvf-left-1/2 rvf-transform rvf--translate-x-1/2 rvf--translate-y-1/2 rvf-flex rvf-flex-col rvf-items-center rvf-gap-2 rvf-text-white rvf-pointer-events-none rvf-z-20">
+              <div className="media-stack-spinner rvf-w-10 rvf-h-10 rvf-border-2 rvf-border-white/20 rvf-border-t-purple-500 rvf-rounded-full rvf-animate-spin" />
             </div>
           )}
 
-          {/* Center Feedback (Play/Pause indicator) */}
-          <div className={`media-stack-center-feedback ${feedback ? 'active' : ''}`}>
-            {feedback === 'play' ? (
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
-            ) : (
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="4" width="4" height="16"></rect>
-                <rect x="14" y="4" width="4" height="16"></rect>
-              </svg>
-            )}
-          </div>
+          {/* Fading Playback Center status icon */}
+          <Overlays.FadingStatusIcon status={feedback} />
 
-          {/* Overlays */}
+          {/* Developer HUD display */}
+          {showDevHud && (
+            <Overlays.DevHud
+              activeIndex={index}
+              bufferHealth={bufferHealth}
+              fps={fps}
+              isCached={isCached}
+            />
+          )}
+
+          {/* Custom or default Slots Layer */}
           {renderCustomOverlay ? (
             renderCustomOverlay(item, index, isActive)
           ) : (
-            <div className="media-stack-overlay">
-              {/* Top Row: Info badge & Mute button */}
-              <div className="media-stack-header">
-                <div>
+            <>
+              {/* Top Header Slot */}
+              <Overlays.TopHeaderContainer>
+                <div className="rvf-pointer-events-auto">
                   {item.badge && <span className="media-stack-badge">{item.badge}</span>}
                 </div>
                 {item.type === 'video' && showMuteButton && (
                   <button
                     type="button"
-                    className="media-stack-icon-btn"
+                    className="media-stack-icon-btn rvf-pointer-events-auto"
                     onClick={(e) => {
                       e.stopPropagation();
                       onMuteToggle();
@@ -255,69 +340,88 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                     {renderMuteIcon()}
                   </button>
                 )}
-              </div>
+              </Overlays.TopHeaderContainer>
 
-              {/* Bottom Row: Metadata (Title/Desc) and Action sidebar (TikTok-style) */}
-              <div className="media-stack-content-bottom">
-                {showMetaInfo ? (
-                  <div className="media-stack-meta">
-                    {item.title && <h3>{item.title}</h3>}
-                    {item.description && <p>{item.description}</p>}
-                  </div>
-                ) : <div className="media-stack-meta" />}
+              {/* Bottom Meta & Caption Layer */}
+              <Overlays.BottomMetaContainer>
+                {showMetaInfo && (
+                  <Overlays.ExpandableCaption
+                    title={item.title}
+                    description={item.description}
+                    expanded={captionExpanded}
+                    onToggle={() => setCaptionExpanded(!captionExpanded)}
+                  />
+                )}
+                {/* Horizontal rotating music marquee placeholder */}
+                {showMetaInfo && item.title && (
+                  <Overlays.MusicMarquee trackName={`${item.title} Original Audio`} />
+                )}
+              </Overlays.BottomMetaContainer>
 
-                {showSidebarActions && (
-                  <div className="media-stack-actions-sidebar">
-                    {onLikeClick && (
-                      <div className="media-stack-action-item">
+              {/* Sidebar Action Menu Layer (The Slots Pattern override checks) */}
+              {showSidebarActions && (
+                <Overlays.RightStackContainer>
+                  {onLikeClick && (
+                    <div className="media-stack-action-item">
+                      {renderLikeButton ? (
+                        renderLikeButton(isActive, () => onLikeClick(item))
+                      ) : (
                         <button
                           type="button"
-                          className="media-stack-icon-btn"
+                          className="media-stack-icon-btn rvf-pointer-events-auto"
                           aria-label="Like"
                           onClick={(e) => {
                             e.stopPropagation();
                             onLikeClick(item);
                           }}
                         >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                           </svg>
                         </button>
-                        <span className="media-stack-action-count">Like</span>
-                      </div>
-                    )}
+                      )}
+                      <span className="media-stack-action-count">Like</span>
+                    </div>
+                  )}
 
-                    {onCommentClick && (
-                      <div className="media-stack-action-item">
+                  {onCommentClick && (
+                    <div className="media-stack-action-item">
+                      {renderCommentButton ? (
+                        renderCommentButton(() => onCommentClick(item))
+                      ) : (
                         <button
                           type="button"
-                          className="media-stack-icon-btn"
+                          className="media-stack-icon-btn rvf-pointer-events-auto"
                           aria-label="Reply"
                           onClick={(e) => {
                             e.stopPropagation();
                             onCommentClick(item);
                           }}
                         >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                           </svg>
                         </button>
-                        <span className="media-stack-action-count">Reply</span>
-                      </div>
-                    )}
+                      )}
+                      <span className="media-stack-action-count">Reply</span>
+                    </div>
+                  )}
 
-                    {onShareClick && (
-                      <div className="media-stack-action-item">
+                  {onShareClick && (
+                    <div className="media-stack-action-item">
+                      {renderShareButton ? (
+                        renderShareButton(() => onShareClick(item))
+                      ) : (
                         <button
                           type="button"
-                          className="media-stack-icon-btn"
+                          className="media-stack-icon-btn rvf-pointer-events-auto"
                           aria-label="Share"
                           onClick={(e) => {
                             e.stopPropagation();
                             onShareClick(item);
                           }}
                         >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="18" cy="5" r="3"></circle>
                             <circle cx="6" cy="12" r="3"></circle>
                             <circle cx="18" cy="19" r="3"></circle>
@@ -325,25 +429,25 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
                           </svg>
                         </button>
-                        <span className="media-stack-action-count">Share</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+                      )}
+                      <span className="media-stack-action-count">Share</span>
+                    </div>
+                  )}
+                </Overlays.RightStackContainer>
+              )}
+            </>
           )}
 
-          {/* Video Timeline Progress bar */}
+          {/* Timeline Loader progress bar */}
           {item.type === 'video' && !renderCustomOverlay && showProgressBar && (
-            <div className="media-stack-progress-container" onClick={handleProgressBarClick}>
+            <div className="media-stack-progress-container rvf-pointer-events-auto" onClick={handleProgressBarClick}>
               <div className="media-stack-progress-bar" style={{ width: `${progress}%` }} />
             </div>
           )}
         </div>
       ) : (
-        /* Virtualized Placeholder Shell: completely unmounts the resource and overlays from DOM tree */
-        <div className="media-stack-media-container" style={{ background: '#0a0a0e' }}>
+        /* Virtualized Placeholder Shell: unmounts heavy nodes, keeps snap bounds active */
+        <div className="media-stack-media-container rvf-relative rvf-w-full rvf-h-full" style={{ background: '#0a0a0e' }}>
           {item.poster && (
             <img
               src={item.poster}

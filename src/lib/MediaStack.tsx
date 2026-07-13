@@ -1,9 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
 import type { MediaStackProps } from './types';
 import { MediaItem } from './MediaItem';
+import { VideoCacheProvider, useVideoCache } from './VideoCacheContext';
 import './media-stack.css';
+import './tailwind-styles.css';
 
-export const MediaStack: React.FC<MediaStackProps> = ({
+const MediaStackInner: React.FC<MediaStackProps> = ({
   items,
   direction = 'vertical',
   autoPlay = true,
@@ -22,15 +24,35 @@ export const MediaStack: React.FC<MediaStackProps> = ({
   showSidebarActions = true,
   showMetaInfo = true,
   autoRotateLandscape = false,
+  renderLikeButton,
+  renderCommentButton,
+  renderShareButton,
+  preFetchAhead = 2,
+  preFetchBehind = 1,
+  cacheLimit = 8,
+  showDevHud = false,
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [globalMuted, setGlobalMuted] = useState(muted);
 
+  const { preloadIndices } = useVideoCache();
+
   // Sync initial mute prop change
   useEffect(() => {
     setGlobalMuted(muted);
   }, [muted]);
+
+  // Trigger background pre-fetching when active slide index changes
+  useEffect(() => {
+    // Maps standard schema to preload compatible types
+    const preloadItems = items.map((item) => ({
+      id: item.id,
+      src: item.src,
+      type: item.type,
+    }));
+    preloadIndices(preloadItems, activeIndex, { preFetchAhead, preFetchBehind, cacheLimit });
+  }, [activeIndex, items, preloadIndices, preFetchAhead, preFetchBehind, cacheLimit]);
 
   // Handle scroll events to detect active item
   const handleScroll = () => {
@@ -95,7 +117,7 @@ export const MediaStack: React.FC<MediaStackProps> = ({
   };
 
   return (
-    <div className="media-stack-container">
+    <div className="media-stack-container rvf-relative">
       {/* Scroll Viewport */}
       <div
         ref={viewportRef}
@@ -123,6 +145,10 @@ export const MediaStack: React.FC<MediaStackProps> = ({
             showSidebarActions={showSidebarActions}
             showMetaInfo={showMetaInfo}
             autoRotateLandscape={autoRotateLandscape}
+            renderLikeButton={renderLikeButton}
+            renderCommentButton={renderCommentButton}
+            renderShareButton={renderShareButton}
+            showDevHud={showDevHud}
           />
         ))}
       </div>
@@ -159,5 +185,18 @@ export const MediaStack: React.FC<MediaStackProps> = ({
         </>
       )}
     </div>
+  );
+};
+
+// Exports high-level wrapper wrapped with zero-config context engine
+export const MediaStack: React.FC<MediaStackProps> = (props) => {
+  return (
+    <VideoCacheProvider
+      preFetchAhead={props.preFetchAhead}
+      preFetchBehind={props.preFetchBehind}
+      cacheLimit={props.cacheLimit}
+    >
+      <MediaStackInner {...props} />
+    </VideoCacheProvider>
   );
 };

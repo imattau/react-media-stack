@@ -32,4 +32,11 @@ export interface MediaStackProps {
   showSidebarActions?: boolean;
   showMetaInfo?: boolean;
   autoRotateLandscape?: boolean;
+  renderLikeButton?: (isActive: boolean, onClick: () => void) => React.ReactNode;
+  renderCommentButton?: (onClick: () => void) => React.ReactNode;
+  renderShareButton?: (onClick: () => void) => React.ReactNode;
+  preFetchAhead?: number;
+  preFetchBehind?: number;
+  cacheLimit?: number;
+  showDevHud?: boolean;
 }
