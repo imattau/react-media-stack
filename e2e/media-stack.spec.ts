@@ -38,4 +38,31 @@ test.describe('MediaStack E2E Showcase', () => {
     // Verify viewport class switched to horizontal
     await expect(viewport).toHaveClass(/horizontal/);
   });
+
+  test('should toggle Developer Performance HUD visibility', async ({ page }) => {
+    // Dev HUD is ON by default in our demo sandbox settings
+    const hud = page.locator('text=FPS:').first();
+    await expect(hud).toBeVisible();
+
+    // Toggle HUD OFF
+    const devHudOffBtn = page.locator('text=Developer Performance HUD >> xpath=following-sibling::div >> text=OFF');
+    await devHudOffBtn.click();
+
+    // Verify HUD is hidden
+    await expect(hud).not.toBeVisible();
+  });
+
+  test('should support slot components overrides (custom buttons)', async ({ page }) => {
+    // Custom button slot is OFF by default. Let's toggle it ON
+    const slotsOnBtn = page.locator('text=Slots Custom Buttons (Overlay) >> xpath=following-sibling::div >> text=ON');
+    await slotsOnBtn.click();
+
+    // Verify custom 💖 emoji slot button exists in the DOM
+    const heartBtn = page.locator('text=💖').first();
+    await expect(heartBtn).toBeVisible();
+
+    // Verify default 'Like' SVG icon doesn't render inside standard button anymore
+    const defaultLikeSvg = page.locator('button[aria-label="Like"] svg').first();
+    await expect(defaultLikeSvg).not.toBeVisible();
+  });
 });
