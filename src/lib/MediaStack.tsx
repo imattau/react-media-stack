@@ -103,6 +103,7 @@ export const MediaStack: React.FC<MediaStackProps> = ({
             item={item}
             index={index}
             isActive={index === activeIndex}
+            shouldLoad={Math.abs(index - activeIndex) <= 1}
             autoPlay={autoPlay}
             muted={globalMuted}
             loop={loop}

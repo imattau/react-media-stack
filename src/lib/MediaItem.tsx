@@ -5,6 +5,7 @@ interface MediaItemProps {
   item: MediaItemData;
   index: number;
   isActive: boolean;
+  shouldLoad: boolean;
   autoPlay: boolean;
   muted: boolean;
   loop: boolean;
@@ -20,6 +21,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   item,
   index,
   isActive,
+  shouldLoad,
   autoPlay,
   muted,
   loop,
@@ -37,28 +39,51 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const [feedback, setFeedback] = useState<'play' | 'pause' | null>(null);
   const feedbackTimeout = useRef<number | null>(null);
 
-  // Playback coordination
+  // Clean up timeouts on unmount to prevent leaks
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeout.current) {
+        window.clearTimeout(feedbackTimeout.current);
+      }
+    };
+  }, []);
+
+  // Playback coordination and memory management
   useEffect(() => {
     const video = videoRef.current;
     if (!video || item.type !== 'video') return;
 
-    if (isActive && autoPlay) {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-          })
-          .catch((err) => {
-            console.log('Autoplay prevented or interrupted:', err);
-            setIsPlaying(false);
-          });
+    if (shouldLoad) {
+      // Re-attach video source if it was previously unloaded/cleared
+      if (!video.src || video.src === '') {
+        video.src = item.src;
+        video.load();
+      }
+
+      if (isActive && autoPlay) {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch((err) => {
+              console.log('Autoplay prevented or interrupted:', err);
+              setIsPlaying(false);
+            });
+        }
+      } else {
+        video.pause();
+        setIsPlaying(false);
       }
     } else {
+      // Release resources: Pause and wipe src to free up video decoder memory
       video.pause();
       setIsPlaying(false);
+      video.removeAttribute('src');
+      video.load();
     }
-  }, [isActive, autoPlay, item.type]);
+  }, [isActive, shouldLoad, autoPlay, item.type, item.src]);
 
   // Sync mute state
   useEffect(() => {
