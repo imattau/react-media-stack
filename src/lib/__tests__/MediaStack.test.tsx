@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MediaStack } from '../MediaStack';
 import type { MediaItemData } from '../types';
 
@@ -145,5 +145,30 @@ describe('MediaStack Component', () => {
 
     rerender(<MediaStack items={[testItems[0]]} direction="horizontal" />);
     expect(container.querySelector('.media-stack-viewport')).toHaveClass('horizontal');
+  });
+
+  it('hides overlays on long press and restores them on release', () => {
+    vi.useFakeTimers();
+    const { container } = render(<MediaStack items={[testItems[0]]} />);
+    const mediaContainer = container.querySelector('.media-stack-media-container');
+    expect(mediaContainer).toBeInTheDocument();
+
+    const overlayWrapper = container.querySelector('.rvf\\:opacity-100');
+    expect(overlayWrapper).toBeInTheDocument();
+
+    fireEvent.mouseDown(mediaContainer!);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(overlayWrapper).toHaveClass('rvf:opacity-0');
+
+    fireEvent.mouseUp(mediaContainer!);
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(overlayWrapper).toHaveClass('rvf:opacity-100');
+    vi.useRealTimers();
   });
 });

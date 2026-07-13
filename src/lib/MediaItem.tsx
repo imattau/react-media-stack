@@ -75,11 +75,19 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const cachedState = getPlaybackState(item.id);
   const [captionExpanded, setCaptionExpanded] = useState(cachedState?.captionExpanded ?? false);
 
+  // Long Press to Hide Overlays States & Refs
+  const [areOverlaysHidden, setAreOverlaysHidden] = useState(false);
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLongPressActiveRef = useRef(false);
+
   // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
       if (feedbackTimeout.current) {
         window.clearTimeout(feedbackTimeout.current);
+      }
+      if (longPressTimeoutRef.current) {
+        clearTimeout(longPressTimeoutRef.current);
       }
     };
   }, []);
@@ -241,8 +249,49 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     }
   };
 
+  const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if ('button' in e && e.button !== 0) return;
+
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+    }
+    
+    isLongPressActiveRef.current = false;
+    longPressTimeoutRef.current = setTimeout(() => {
+      setAreOverlaysHidden(true);
+      isLongPressActiveRef.current = true;
+    }, 500);
+  };
+
+  const handlePressEnd = () => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+    if (isLongPressActiveRef.current) {
+      setAreOverlaysHidden(false);
+      setTimeout(() => {
+        isLongPressActiveRef.current = false;
+      }, 0);
+    }
+  };
+
+  const handlePressMove = () => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  };
+
   const handleVideoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Ignore click action if long press was active
+    if (isLongPressActiveRef.current) {
+      isLongPressActiveRef.current = false;
+      return;
+    }
+
     if (onItemClick) {
       onItemClick(item, index);
     }
@@ -308,7 +357,18 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   return (
     <div className="media-stack-item-wrapper rvf:relative rvf:w-full rvf:h-full">
       {shouldLoad ? (
-        <div className="media-stack-media-container rvf:relative rvf:w-full rvf:h-full" onClick={handleVideoClick}>
+        <div
+          className="media-stack-media-container rvf:relative rvf:w-full rvf:h-full"
+          onClick={handleVideoClick}
+          onMouseDown={handlePressStart}
+          onMouseUp={handlePressEnd}
+          onMouseLeave={handlePressEnd}
+          onMouseMove={handlePressMove}
+          onTouchStart={handlePressStart}
+          onTouchEnd={handlePressEnd}
+          onTouchMove={handlePressMove}
+          onTouchCancel={handlePressEnd}
+        >
           {item.type === 'video' ? (
             <video
               ref={videoRef}
@@ -356,21 +416,23 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
           {/* Developer HUD display */}
           {showDevHud && (
-            <Overlays.DevHud
-              activeIndex={index}
-              bufferHealth={bufferHealth}
-              fps={fps}
-              isCached={isCached}
-            />
+            <div className={`rvf:transition-opacity rvf:duration-300 ${areOverlaysHidden ? 'rvf:opacity-0' : 'rvf:opacity-100'}`}>
+              <Overlays.DevHud
+                activeIndex={index}
+                bufferHealth={bufferHealth}
+                fps={fps}
+                isCached={isCached}
+              />
+            </div>
           )}
 
           {/* Custom or default Slots Layer */}
           {renderCustomOverlay ? (
-            <div className="rvf:absolute rvf:inset-0 rvf:pointer-events-none rvf:z-10">
+            <div className={`rvf:absolute rvf:inset-0 rvf:pointer-events-none rvf:z-10 rvf:transition-opacity rvf:duration-300 ${areOverlaysHidden ? 'rvf:opacity-0' : 'rvf:opacity-100'}`}>
               {renderCustomOverlay(item, index, isActive)}
             </div>
           ) : (
-            <>
+            <div className={`rvf:transition-opacity rvf:duration-300 ${areOverlaysHidden ? 'rvf:opacity-0' : 'rvf:opacity-100'}`}>
               {/* Top Header Slot */}
               <Overlays.TopHeaderContainer>
                 <div className="rvf:pointer-events-auto">
@@ -486,12 +548,12 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                   {renderExtraActions && renderExtraActions(item, index)}
                 </Overlays.RightStackContainer>
               )}
-            </>
+            </div>
           )}
 
           {/* Timeline Loader progress bar */}
           {item.type === 'video' && !renderCustomOverlay && showProgressBar && (
-            <div className="media-stack-progress-container rvf:pointer-events-auto" onClick={handleProgressBarClick}>
+            <div className={`media-stack-progress-container rvf:pointer-events-auto rvf:transition-opacity rvf:duration-300 ${areOverlaysHidden ? 'rvf:opacity-0' : 'rvf:opacity-100'}`} onClick={handleProgressBarClick}>
               <div className="media-stack-progress-bar" style={{ width: `${progress}%` }} />
             </div>
           )}
