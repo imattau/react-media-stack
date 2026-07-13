@@ -225,6 +225,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                     <button
                       type="button"
                       className="media-stack-icon-btn"
+                      aria-label="Like"
                       onClick={(e) => {
                         e.stopPropagation();
                         onLikeClick(item);
@@ -243,6 +244,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                     <button
                       type="button"
                       className="media-stack-icon-btn"
+                      aria-label="Reply"
                       onClick={(e) => {
                         e.stopPropagation();
                         onCommentClick(item);
@@ -261,6 +263,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                     <button
                       type="button"
                       className="media-stack-icon-btn"
+                      aria-label="Share"
                       onClick={(e) => {
                         e.stopPropagation();
                         onShareClick(item);
