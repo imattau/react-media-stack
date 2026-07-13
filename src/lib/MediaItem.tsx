@@ -14,6 +14,7 @@ interface MediaItemProps {
   loop: boolean;
   onMuteToggle: () => void;
   onItemClick?: (item: MediaItemData, index: number) => void;
+  onAuthorClick?: (item: MediaItemData) => void;
   onLikeClick?: (item: MediaItemData) => void;
   onShareClick?: (item: MediaItemData) => void;
   onCommentClick?: (item: MediaItemData) => void;
@@ -29,9 +30,14 @@ interface MediaItemProps {
   renderExtraActions?: (item: MediaItemData, index: number) => React.ReactNode;
   renderAuthor?: (item: MediaItemData) => React.ReactNode;
   showDevHud?: boolean;
+  onVideoEnded?: (item: MediaItemData, index: number) => void;
+  areOverlaysHidden?: boolean;
+  onOverlaysHiddenToggle?: () => void;
 }
 
 export const MediaItem: React.FC<MediaItemProps> = ({
+  areOverlaysHidden: areOverlaysHiddenProp,
+  onOverlaysHiddenToggle,
   item,
   index,
   isActive,
@@ -41,6 +47,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   loop,
   onMuteToggle,
   onItemClick,
+  onAuthorClick,
   onLikeClick,
   onShareClick,
   onCommentClick,
@@ -56,6 +63,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   renderExtraActions,
   renderAuthor,
   showDevHud = false,
+  onVideoEnded,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,7 +86,8 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const [captionExpanded, setCaptionExpanded] = useState(cachedState?.captionExpanded ?? false);
 
   // Long Press to Hide Overlays States & Refs
-  const [areOverlaysHidden, setAreOverlaysHidden] = useState(false);
+  const [localAreOverlaysHidden, setLocalAreOverlaysHidden] = useState(false);
+  const areOverlaysHidden = areOverlaysHiddenProp !== undefined ? areOverlaysHiddenProp : localAreOverlaysHidden;
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressActiveRef = useRef(false);
 
@@ -88,7 +97,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   // Reset overlay visibility and NSFW blur when item becomes inactive
   useEffect(() => {
     if (!isActive) {
-      setAreOverlaysHidden(false);
+      setLocalAreOverlaysHidden(false);
       setIsNsfwBlurred(item.nsfw ?? false);
     }
   }, [isActive, item.nsfw]);
@@ -114,6 +123,13 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           currentTime: video.currentTime,
           captionExpanded,
         });
+        video.pause();
+        video.removeAttribute('src');
+        try {
+          video.load();
+        } catch (e) {
+          // ignore error
+        }
       }
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -173,6 +189,11 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         }
       }
 
+      // Ensure muted state is applied before playing (belt-and-suspenders with the muted HTML attribute)
+      if (video.muted !== muted) {
+        video.muted = muted;
+      }
+
       if (isActive && autoPlay) {
         const playPromise = video.play();
         if (playPromise !== undefined) {
@@ -208,7 +229,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       video.removeAttribute('src');
       video.load();
     }
-  }, [isActive, shouldLoad, autoPlay, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, captionExpanded]);
+  }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, captionExpanded]);
 
   // Sync mute state
   useEffect(() => {
@@ -272,7 +293,11 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     
     isLongPressActiveRef.current = false;
     longPressTimeoutRef.current = setTimeout(() => {
-      setAreOverlaysHidden(prev => !prev);
+      if (onOverlaysHiddenToggle) {
+        onOverlaysHiddenToggle();
+      } else {
+        setLocalAreOverlaysHidden(prev => !prev);
+      }
       isLongPressActiveRef.current = true;
     }, 500);
   };
@@ -391,6 +416,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               className={`media-stack-media ${item.fit || 'contain'} ${autoRotateLandscape && isLandscape ? 'rotated' : ''}`}
               style={isNsfwBlurred ? { filter: 'blur(30px)', transform: 'scale(1.05)', transition: 'filter 0.5s ease, transform 0.5s ease' } : { transition: 'filter 0.5s ease, transform 0.5s ease' }}
               loop={loop}
+              muted={muted}
               preload="auto"
               playsInline
               onTimeUpdate={handleTimeUpdate}
@@ -405,6 +431,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                 setIsPlaying(true);
               }}
               onCanPlay={() => setIsLoading(false)}
+              onEnded={() => onVideoEnded?.(item, index)}
             />
           ) : (
             <img
@@ -482,6 +509,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                     authorAvatarUrl={item.authorAvatarUrl}
                     authorVerified={item.authorVerified}
                     renderAuthor={renderAuthor}
+                    onAuthorClick={onAuthorClick}
                   />
                 )}
                 {/* Horizontal rotating music marquee placeholder */}

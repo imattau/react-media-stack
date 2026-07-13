@@ -230,4 +230,57 @@ describe('MediaStack Component', () => {
     );
     expect(screen.getByTestId('custom-author-profile')).toHaveTextContent('Custom Creator: Alex Rivera');
   });
+
+  it('handles autoScroll trigger cycles', () => {
+    vi.useFakeTimers();
+    const mockActiveIndexChange = vi.fn();
+    render(
+      <MediaStack 
+        items={[testItems[0], testItems[1]]} 
+        autoScroll={true} 
+        autoScrollInterval={2000}
+        onActiveIndexChange={mockActiveIndexChange}
+      />
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    
+    expect(mockActiveIndexChange).toHaveBeenCalledWith(1);
+    vi.useRealTimers();
+  });
+
+  it('persists overlay hidden state across video changes', () => {
+    vi.useFakeTimers();
+    const { container } = render(
+      <MediaStack 
+        items={[testItems[0], testItems[1]]} 
+        autoScroll={true} 
+        autoScrollInterval={2000}
+      />
+    );
+    const mediaContainer = container.querySelector('.media-stack-media-container');
+    expect(mediaContainer).toBeInTheDocument();
+
+    expect(container.querySelector('.rvf\\:opacity-100')).toBeInTheDocument();
+
+    // 1st Long press: Trigger hold to hide
+    fireEvent.mouseDown(mediaContainer!);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.mouseUp(mediaContainer!);
+
+    expect(container.querySelector('.rvf\\:opacity-0')).toBeInTheDocument();
+
+    // Advance time to auto-scroll to the second video (after 2000ms total)
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(container.querySelector('.rvf\\:opacity-0')).toBeInTheDocument();
+    
+    vi.useRealTimers();
+  });
 });

@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import type { MediaStackProps } from './types';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import type { MediaItemData, MediaStackProps } from './types';
 import { MediaItem } from './MediaItem';
 import { VideoCacheProvider, useVideoCache } from './VideoCacheContext';
 import './media-stack.css';
@@ -33,17 +33,93 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
   preFetchBehind = 1,
   cacheLimit = 8,
   showDevHud = false,
+  autoScroll = false,
+  autoScrollInterval = 5000,
+  onVideoEnded,
+  onAuthorClick,
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [globalMuted, setGlobalMuted] = useState(muted);
+  const [areOverlaysHidden, setAreOverlaysHidden] = useState(false);
+  const [scrollDirection, setScrollDirection] = useState<'forward' | 'backward'>('forward');
+  const lastIndexRef = useRef(0);
+  const isFirstRender = useRef(true);
 
   const { preloadIndices } = useVideoCache();
+
+  // Sync onActiveIndexChange callback on activeIndex updates
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (onActiveIndexChange) {
+      onActiveIndexChange(activeIndex);
+    }
+  }, [activeIndex, onActiveIndexChange]);
+
+  const scrollToIndex = useCallback((index: number) => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    if (typeof viewport.scrollTo === 'function') {
+      if (direction === 'vertical') {
+        const height = viewport.clientHeight;
+        viewport.scrollTo({
+          top: index * height,
+          behavior: 'smooth',
+        });
+      } else {
+        const width = viewport.clientWidth;
+        viewport.scrollTo({
+          left: index * width,
+          behavior: 'smooth',
+        });
+      }
+    }
+    setActiveIndex(index);
+  }, [direction]);
 
   // Sync initial mute prop change
   useEffect(() => {
     setGlobalMuted(muted);
   }, [muted]);
+
+  // Track user scroll direction based on index changes
+  useEffect(() => {
+    if (activeIndex !== lastIndexRef.current) {
+      if (activeIndex > lastIndexRef.current) {
+        setScrollDirection('forward');
+      } else if (activeIndex < lastIndexRef.current) {
+        setScrollDirection('backward');
+      }
+      lastIndexRef.current = activeIndex;
+    }
+  }, [activeIndex]);
+
+  // Auto-scroll loop
+  useEffect(() => {
+    if (!autoScroll || items.length <= 1) return;
+
+    const timer = setInterval(() => {
+      if (scrollDirection === 'forward') {
+        if (activeIndex < items.length - 1) {
+          const next = activeIndex + 1;
+          setActiveIndex(next);
+          scrollToIndex(next);
+        }
+      } else {
+        if (activeIndex > 0) {
+          const next = activeIndex - 1;
+          setActiveIndex(next);
+          scrollToIndex(next);
+        }
+      }
+    }, autoScrollInterval);
+
+    return () => clearInterval(timer);
+  }, [autoScroll, autoScrollInterval, scrollDirection, activeIndex, items.length]);
 
   // Trigger background pre-fetching when active slide index changes
   useEffect(() => {
@@ -74,9 +150,6 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
 
     if (index >= 0 && index < items.length && index !== activeIndex) {
       setActiveIndex(index);
-      if (onActiveIndexChange) {
-        onActiveIndexChange(index);
-      }
     }
   };
 
@@ -84,25 +157,27 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
     setGlobalMuted((prev) => !prev);
   };
 
-  const scrollToIndex = (index: number) => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    if (direction === 'vertical') {
-      const height = viewport.clientHeight;
-      viewport.scrollTo({
-        top: index * height,
-        behavior: 'smooth',
-      });
-    } else {
-      const width = viewport.clientWidth;
-      viewport.scrollTo({
-        left: index * width,
-        behavior: 'smooth',
-      });
-    }
-    setActiveIndex(index);
+  const handleOverlaysHiddenToggle = () => {
+    setAreOverlaysHidden((prev) => !prev);
   };
+
+  const handleVideoEnded = useCallback((_item: MediaItemData, index: number) => {
+    // Fire consumer callback if provided
+    if (onVideoEnded) {
+      onVideoEnded(_item, index);
+      return;
+    }
+    // Default: auto-advance to next/prev based on scroll direction
+    if (scrollDirection === 'forward') {
+      if (index < items.length - 1) {
+        scrollToIndex(index + 1);
+      }
+    } else {
+      if (index > 0) {
+        scrollToIndex(index - 1);
+      }
+    }
+  }, [onVideoEnded, scrollDirection, items.length, scrollToIndex]);
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -137,7 +212,10 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
             muted={globalMuted}
             loop={loop}
             onMuteToggle={handleMuteToggle}
+            areOverlaysHidden={areOverlaysHidden}
+            onOverlaysHiddenToggle={handleOverlaysHiddenToggle}
             onItemClick={onItemClick}
+            onAuthorClick={onAuthorClick}
             onLikeClick={onLikeClick}
             onShareClick={onShareClick}
             onCommentClick={onCommentClick}
@@ -153,6 +231,7 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
             renderExtraActions={renderExtraActions}
             renderAuthor={renderAuthor}
             showDevHud={showDevHud}
+            onVideoEnded={handleVideoEnded}
           />
         ))}
       </div>

@@ -26,6 +26,7 @@ export interface MediaStackProps {
   hideScrollbar?: boolean;
   onActiveIndexChange?: (index: number) => void;
   onItemClick?: (item: MediaItemData, index: number) => void;
+  onAuthorClick?: (item: MediaItemData) => void;
   onLikeClick?: (item: MediaItemData) => void;
   onShareClick?: (item: MediaItemData) => void;
   onCommentClick?: (item: MediaItemData) => void;
@@ -45,4 +46,7 @@ export interface MediaStackProps {
   preFetchBehind?: number;
   cacheLimit?: number;
   showDevHud?: boolean;
+  autoScroll?: boolean;
+  autoScrollInterval?: number;
+  onVideoEnded?: (item: MediaItemData, index: number) => void;
 }

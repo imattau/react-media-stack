@@ -75,6 +75,7 @@ interface ExpandableCaptionProps {
   authorAvatarUrl?: string;
   authorVerified?: boolean;
   renderAuthor?: (item: MediaItemData) => React.ReactNode;
+  onAuthorClick?: (item: MediaItemData) => void;
 }
 export const ExpandableCaption: React.FC<ExpandableCaptionProps> = ({
   item,
@@ -86,31 +87,40 @@ export const ExpandableCaption: React.FC<ExpandableCaptionProps> = ({
   authorAvatarUrl,
   authorVerified,
   renderAuthor,
+  onAuthorClick,
 }) => {
   if (!title && !description && !authorName) return null;
+
+  const handleAuthorClick = () => {
+    onAuthorClick?.(item);
+  };
 
   return (
     <div className="rvf:pointer-events-auto rvf:flex rvf:flex-col rvf:gap-1 rvf:text-white rvf:max-w-md rvf:bg-black/30 rvf:p-3 rvf:rounded-lg rvf:backdrop-blur-sm">
       {renderAuthor ? (
         renderAuthor(item)
       ) : (authorName || authorAvatarUrl) && (
-        <div className="rvf:flex rvf:items-center rvf:gap-2 rvf:mb-1.5">
+        <button
+          type="button"
+          onClick={handleAuthorClick}
+          className="rvf:flex rvf:items-center rvf:gap-2 rvf:mb-1.5 rvf:cursor-pointer rvf:text-left rvf:bg-transparent rvf:border-none rvf:p-0 rvf:w-full"
+        >
           {authorAvatarUrl && (
             <img
               src={authorAvatarUrl}
               alt={authorName || 'Author avatar'}
-              className="rvf:w-7 rvf:h-7 rvf:rounded-full rvf:border rvf:border-white/10 rvf:object-cover"
+              className="rvf:w-7 rvf:h-7 rvf:rounded-full rvf:border rvf:border-white/10 rvf:object-cover rvf:shrink-0"
             />
           )}
-          <div className="rvf:flex rvf:items-center rvf:gap-1">
-            <span className="rvf:text-xs rvf:font-bold rvf:text-white">{authorName || 'Anonymous'}</span>
+          <div className="rvf:flex rvf:items-center rvf:gap-1 rvf:min-w-0">
+            <span className="rvf:text-xs rvf:font-bold rvf:text-white rvf:truncate">{authorName || 'Anonymous'}</span>
             {authorVerified && (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="rvf:text-blue-400">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="rvf:text-blue-400 rvf:shrink-0">
                 <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
               </svg>
             )}
           </div>
-        </div>
+        </button>
       )}
       {title && <h3 className="rvf:m-0 rvf:font-bold rvf:text-sm">{title}</h3>}
       {description && (

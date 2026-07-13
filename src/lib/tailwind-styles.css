@@ -1,3 +1,2 @@
-@layer library {
-  @import "tailwindcss" prefix(rvf);
-}
+@import "tailwindcss" prefix(rvf);
+
