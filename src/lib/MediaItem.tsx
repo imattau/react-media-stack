@@ -304,9 +304,9 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const isCached = resolvedMediaSrc.startsWith('blob:');
 
   return (
-    <div className="media-stack-item-wrapper rvf-relative rvf-w-full rvf-h-full">
+    <div className="media-stack-item-wrapper rvf:relative rvf:w-full rvf:h-full">
       {shouldLoad ? (
-        <div className="media-stack-media-container rvf-relative rvf-w-full rvf-h-full" onClick={handleVideoClick}>
+        <div className="media-stack-media-container rvf:relative rvf:w-full rvf:h-full" onClick={handleVideoClick}>
           {item.type === 'video' ? (
             <video
               ref={videoRef}
@@ -344,8 +344,8 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
           {/* Loading Spinner */}
           {isLoading && (
-            <div className="media-stack-loading rvf-absolute rvf-top-1/2 rvf-left-1/2 rvf-transform rvf--translate-x-1/2 rvf--translate-y-1/2 rvf-flex rvf-flex-col rvf-items-center rvf-gap-2 rvf-text-white rvf-pointer-events-none rvf-z-20">
-              <div className="media-stack-spinner rvf-w-10 rvf-h-10 rvf-border-2 rvf-border-white/20 rvf-border-t-purple-500 rvf-rounded-full rvf-animate-spin" />
+            <div className="media-stack-loading rvf:absolute rvf:top-1/2 rvf:left-1/2 rvf:transform rvf:-translate-x-1/2 rvf:-translate-y-1/2 rvf:flex rvf:flex-col rvf:items-center rvf:gap-2 rvf:text-white rvf:pointer-events-none rvf:z-20">
+              <div className="media-stack-spinner rvf:w-10 rvf:h-10 rvf:border-2 rvf:border-white/20 rvf:border-t-purple-500 rvf:rounded-full rvf:animate-spin" />
             </div>
           )}
 
@@ -364,18 +364,20 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
           {/* Custom or default Slots Layer */}
           {renderCustomOverlay ? (
-            renderCustomOverlay(item, index, isActive)
+            <div className="rvf:absolute rvf:inset-0 rvf:pointer-events-none rvf:z-10">
+              {renderCustomOverlay(item, index, isActive)}
+            </div>
           ) : (
             <>
               {/* Top Header Slot */}
               <Overlays.TopHeaderContainer>
-                <div className="rvf-pointer-events-auto">
+                <div className="rvf:pointer-events-auto">
                   {item.badge && <span className="media-stack-badge">{item.badge}</span>}
                 </div>
                 {item.type === 'video' && showMuteButton && (
                   <button
                     type="button"
-                    className="media-stack-icon-btn rvf-pointer-events-auto"
+                    className="media-stack-icon-btn rvf:pointer-events-auto"
                     onClick={(e) => {
                       e.stopPropagation();
                       onMuteToggle();
@@ -413,7 +415,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                       ) : (
                         <button
                           type="button"
-                          className="media-stack-icon-btn rvf-pointer-events-auto"
+                          className="media-stack-icon-btn rvf:pointer-events-auto"
                           aria-label="Like"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -436,7 +438,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                       ) : (
                         <button
                           type="button"
-                          className="media-stack-icon-btn rvf-pointer-events-auto"
+                          className="media-stack-icon-btn rvf:pointer-events-auto"
                           aria-label="Reply"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -459,7 +461,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                       ) : (
                         <button
                           type="button"
-                          className="media-stack-icon-btn rvf-pointer-events-auto"
+                          className="media-stack-icon-btn rvf:pointer-events-auto"
                           aria-label="Share"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -485,14 +487,14 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
           {/* Timeline Loader progress bar */}
           {item.type === 'video' && !renderCustomOverlay && showProgressBar && (
-            <div className="media-stack-progress-container rvf-pointer-events-auto" onClick={handleProgressBarClick}>
+            <div className="media-stack-progress-container rvf:pointer-events-auto" onClick={handleProgressBarClick}>
               <div className="media-stack-progress-bar" style={{ width: `${progress}%` }} />
             </div>
           )}
         </div>
       ) : (
         /* Virtualized Placeholder Shell: unmounts heavy nodes, keeps snap bounds active */
-        <div className="media-stack-media-container rvf-relative rvf-w-full rvf-h-full" style={{ background: '#0a0a0e' }}>
+        <div className="media-stack-media-container rvf:relative rvf:w-full rvf:h-full" style={{ background: '#0a0a0e' }}>
           {item.poster && (
             <img
               src={item.poster}

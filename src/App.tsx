@@ -156,7 +156,7 @@ function App() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onClick(); }}
-                  className="media-stack-icon-btn rvf-pointer-events-auto"
+                  className="media-stack-icon-btn rvf:pointer-events-auto"
                   style={{ background: isActive ? 'rgba(255,0,128,0.3)' : 'rgba(255,0,128,0.1)', borderColor: '#ff0080' }}
                   aria-label="Like"
                 >
@@ -167,7 +167,7 @@ function App() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onClick(); }}
-                  className="media-stack-icon-btn rvf-pointer-events-auto"
+                  className="media-stack-icon-btn rvf:pointer-events-auto"
                   style={{ background: 'rgba(0,200,255,0.1)', borderColor: '#00c8ff' }}
                   aria-label="Reply"
                 >

@@ -117,7 +117,7 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
   };
 
   return (
-    <div className="media-stack-container rvf-relative">
+    <div className="media-stack-container rvf:relative">
       {/* Scroll Viewport */}
       <div
         ref={viewportRef}
