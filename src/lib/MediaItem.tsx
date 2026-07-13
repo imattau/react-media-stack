@@ -80,6 +80,13 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressActiveRef = useRef(false);
 
+  // Reset overlay visibility when item becomes inactive
+  useEffect(() => {
+    if (!isActive) {
+      setAreOverlaysHidden(false);
+    }
+  }, [isActive]);
+
   // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
@@ -258,7 +265,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     
     isLongPressActiveRef.current = false;
     longPressTimeoutRef.current = setTimeout(() => {
-      setAreOverlaysHidden(true);
+      setAreOverlaysHidden(prev => !prev);
       isLongPressActiveRef.current = true;
     }, 500);
   };
@@ -269,7 +276,6 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       longPressTimeoutRef.current = null;
     }
     if (isLongPressActiveRef.current) {
-      setAreOverlaysHidden(false);
       setTimeout(() => {
         isLongPressActiveRef.current = false;
       }, 0);

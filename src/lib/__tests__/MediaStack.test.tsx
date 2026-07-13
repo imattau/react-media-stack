@@ -147,7 +147,7 @@ describe('MediaStack Component', () => {
     expect(container.querySelector('.media-stack-viewport')).toHaveClass('horizontal');
   });
 
-  it('hides overlays on long press and restores them on release', () => {
+  it('toggles overlays visibility on subsequent long presses', () => {
     vi.useFakeTimers();
     const { container } = render(<MediaStack items={[testItems[0]]} />);
     const mediaContainer = container.querySelector('.media-stack-media-container');
@@ -156,18 +156,32 @@ describe('MediaStack Component', () => {
     const overlayWrapper = container.querySelector('.rvf\\:opacity-100');
     expect(overlayWrapper).toBeInTheDocument();
 
+    // 1st Long press: Trigger hold to hide
     fireEvent.mouseDown(mediaContainer!);
     act(() => {
       vi.advanceTimersByTime(500);
     });
-
     expect(overlayWrapper).toHaveClass('rvf:opacity-0');
 
+    // Release mouse up: should STAY hidden (toggle action)
     fireEvent.mouseUp(mediaContainer!);
     act(() => {
       vi.advanceTimersByTime(0);
     });
+    expect(overlayWrapper).toHaveClass('rvf:opacity-0');
 
+    // 2nd Long press: Trigger hold again to restore
+    fireEvent.mouseDown(mediaContainer!);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(overlayWrapper).toHaveClass('rvf:opacity-100');
+
+    // Release: should STAY visible
+    fireEvent.mouseUp(mediaContainer!);
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
     expect(overlayWrapper).toHaveClass('rvf:opacity-100');
     vi.useRealTimers();
   });
