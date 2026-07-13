@@ -1,7 +1,8 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MediaStack } from '../MediaStack';
-import type { MediaItemData } from '../types';
+import type { MediaItemData, MediaStackRef } from '../types';
 
 const testItems: MediaItemData[] = [
   {
@@ -282,5 +283,49 @@ describe('MediaStack Component', () => {
     expect(container.querySelector('.rvf\\:opacity-0')).toBeInTheDocument();
     
     vi.useRealTimers();
+  });
+
+  it('exposes a ref with a scrollTo helper that correctly navigates programmatically', () => {
+    const ref = React.createRef<MediaStackRef>();
+    const mockActiveIndexChange = vi.fn();
+    render(
+      <MediaStack 
+        ref={ref}
+        items={[testItems[0], testItems[1], { ...testItems[0], id: '3' }]} 
+        onActiveIndexChange={mockActiveIndexChange}
+      />
+    );
+
+    expect(ref.current).toBeDefined();
+    
+    // Scroll to next (default direction is 'forward', so goes to index 1)
+    act(() => {
+      ref.current?.scrollTo('next');
+    });
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(1);
+
+    // Scroll to end (index 2). 2 > 1 => scrollDirection is 'forward'
+    act(() => {
+      ref.current?.scrollTo('end');
+    });
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(2);
+
+    // Scroll to next (direction is 'forward', but capped at 2)
+    act(() => {
+      ref.current?.scrollTo('next');
+    });
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(2);
+
+    // Scroll to start (index 0). 0 < 2 => scrollDirection becomes 'backward'
+    act(() => {
+      ref.current?.scrollTo('start');
+    });
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(0);
+
+    // Scroll to next (direction is now 'backward', so index decreases. Capped at 0)
+    act(() => {
+      ref.current?.scrollTo('next');
+    });
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(0);
   });
 });

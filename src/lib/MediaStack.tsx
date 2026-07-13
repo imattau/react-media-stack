@@ -1,11 +1,11 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import type { MediaItemData, MediaStackProps } from './types';
+import React, { useRef, useState, useEffect, useCallback, useImperativeHandle } from 'react';
+import type { MediaItemData, MediaStackProps, MediaStackRef } from './types';
 import { MediaItem } from './MediaItem';
 import { VideoCacheProvider, useVideoCache } from './VideoCacheContext';
 import './media-stack.css';
 import './tailwind-styles.css';
 
-const MediaStackInner: React.FC<MediaStackProps> = ({
+const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   items,
   direction = 'vertical',
   autoPlay = true,
@@ -37,7 +37,7 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
   autoScrollInterval = 5000,
   onVideoEnded,
   onAuthorClick,
-}) => {
+}, ref) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [globalMuted, setGlobalMuted] = useState(muted);
@@ -161,6 +161,31 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
     setAreOverlaysHidden((prev) => !prev);
   };
 
+  useImperativeHandle(ref, () => ({
+    scrollTo: (target: 'start' | 'end' | 'next' | 'last') => {
+      let targetIndex = activeIndex;
+      const dir = scrollDirection;
+      
+      switch (target) {
+        case 'start':
+          targetIndex = 0;
+          break;
+        case 'end':
+          targetIndex = items.length - 1;
+          break;
+        case 'next':
+          targetIndex = dir === 'forward' ? activeIndex + 1 : activeIndex - 1;
+          break;
+        case 'last':
+          targetIndex = dir === 'forward' ? activeIndex - 1 : activeIndex + 1;
+          break;
+      }
+      
+      targetIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
+      scrollToIndex(targetIndex);
+    }
+  }), [activeIndex, scrollDirection, items.length, scrollToIndex]);
+
   const handleVideoEnded = useCallback((_item: MediaItemData, index: number) => {
     // Fire consumer callback if provided
     if (onVideoEnded) {
@@ -269,17 +294,17 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
       )}
     </div>
   );
-};
+});
 
 // Exports high-level wrapper wrapped with zero-config context engine
-export const MediaStack: React.FC<MediaStackProps> = (props) => {
+export const MediaStack = React.forwardRef<MediaStackRef, MediaStackProps>((props, ref) => {
   return (
     <VideoCacheProvider
       preFetchAhead={props.preFetchAhead}
       preFetchBehind={props.preFetchBehind}
       cacheLimit={props.cacheLimit}
     >
-      <MediaStackInner {...props} />
+      <MediaStackInner ref={ref} {...props} />
     </VideoCacheProvider>
   );
-};
+});

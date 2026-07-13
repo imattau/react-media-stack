@@ -50,3 +50,7 @@ export interface MediaStackProps {
   autoScrollInterval?: number;
   onVideoEnded?: (item: MediaItemData, index: number) => void;
 }
+
+export interface MediaStackRef {
+  scrollTo: (target: 'start' | 'end' | 'next' | 'last') => void;
+}
