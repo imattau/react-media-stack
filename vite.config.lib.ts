@@ -21,12 +21,13 @@ export default defineConfig({
       fileName: (format) => `index.${format === 'es' ? 'es.js' : 'umd.js'}`,
     },
     rollupOptions: {
-      // Exclude peer dependencies from the bundled library code
-      external: ['react', 'react-dom'],
+      // Exclude peer dependencies and subpaths (like react/jsx-runtime) from bundled library code
+      external: (id) => /^react(-dom)?(\/|$)/.test(id),
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
+          'react/jsx-runtime': 'JSX',
         },
         assetFileNames: (assetInfo) => {
           if (assetInfo.name === 'style.css') return 'index.css';
