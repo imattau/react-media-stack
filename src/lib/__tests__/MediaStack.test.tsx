@@ -214,4 +214,20 @@ describe('MediaStack Component', () => {
     fireEvent.click(showBtn);
     expect(screen.queryByText('Sensitive Content')).not.toBeInTheDocument();
   });
+
+  it('supports renderAuthor slot to custom-render publisher details', () => {
+    const authorItem: MediaItemData = {
+      ...testItems[0],
+      authorName: 'Alex Rivera',
+    };
+    render(
+      <MediaStack
+        items={[authorItem]}
+        renderAuthor={(item) => (
+          <div data-testid="custom-author-profile">Custom Creator: {item.authorName}</div>
+        )}
+      />
+    );
+    expect(screen.getByTestId('custom-author-profile')).toHaveTextContent('Custom Creator: Alex Rivera');
+  });
 });

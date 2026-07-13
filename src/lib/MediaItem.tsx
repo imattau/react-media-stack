@@ -27,6 +27,7 @@ interface MediaItemProps {
   renderCommentButton?: (onClick: () => void) => React.ReactNode;
   renderShareButton?: (onClick: () => void) => React.ReactNode;
   renderExtraActions?: (item: MediaItemData, index: number) => React.ReactNode;
+  renderAuthor?: (item: MediaItemData) => React.ReactNode;
   showDevHud?: boolean;
 }
 
@@ -53,6 +54,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   renderCommentButton,
   renderShareButton,
   renderExtraActions,
+  renderAuthor,
   showDevHud = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -471,6 +473,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               <Overlays.BottomMetaContainer>
                 {showMetaInfo && (
                   <Overlays.ExpandableCaption
+                    item={item}
                     title={item.title}
                     description={item.description}
                     expanded={captionExpanded}
@@ -478,6 +481,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                     authorName={item.authorName}
                     authorAvatarUrl={item.authorAvatarUrl}
                     authorVerified={item.authorVerified}
+                    renderAuthor={renderAuthor}
                   />
                 )}
                 {/* Horizontal rotating music marquee placeholder */}

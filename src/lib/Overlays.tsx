@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from './utils';
+import type { MediaItemData } from './types';
 
 // Raw containers for absolute positioning slots
 export const TopHeaderContainer: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
@@ -65,6 +66,7 @@ export const FadingStatusIcon: React.FC<FadingStatusIconProps> = ({ status }) =>
 
 // 2. Expandable Caption Box ("Show More")
 interface ExpandableCaptionProps {
+  item: MediaItemData;
   title?: string;
   description?: string;
   expanded: boolean;
@@ -72,8 +74,10 @@ interface ExpandableCaptionProps {
   authorName?: string;
   authorAvatarUrl?: string;
   authorVerified?: boolean;
+  renderAuthor?: (item: MediaItemData) => React.ReactNode;
 }
 export const ExpandableCaption: React.FC<ExpandableCaptionProps> = ({
+  item,
   title,
   description,
   expanded,
@@ -81,12 +85,15 @@ export const ExpandableCaption: React.FC<ExpandableCaptionProps> = ({
   authorName,
   authorAvatarUrl,
   authorVerified,
+  renderAuthor,
 }) => {
   if (!title && !description && !authorName) return null;
 
   return (
     <div className="rvf:pointer-events-auto rvf:flex rvf:flex-col rvf:gap-1 rvf:text-white rvf:max-w-md rvf:bg-black/30 rvf:p-3 rvf:rounded-lg rvf:backdrop-blur-sm">
-      {(authorName || authorAvatarUrl) && (
+      {renderAuthor ? (
+        renderAuthor(item)
+      ) : (authorName || authorAvatarUrl) && (
         <div className="rvf:flex rvf:items-center rvf:gap-2 rvf:mb-1.5">
           {authorAvatarUrl && (
             <img
