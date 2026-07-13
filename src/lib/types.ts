@@ -35,6 +35,7 @@ export interface MediaStackProps {
   renderLikeButton?: (isActive: boolean, onClick: () => void) => React.ReactNode;
   renderCommentButton?: (onClick: () => void) => React.ReactNode;
   renderShareButton?: (onClick: () => void) => React.ReactNode;
+  renderExtraActions?: (item: MediaItemData, index: number) => React.ReactNode;
   preFetchAhead?: number;
   preFetchBehind?: number;
   cacheLimit?: number;

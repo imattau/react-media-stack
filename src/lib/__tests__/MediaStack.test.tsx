@@ -108,6 +108,18 @@ describe('MediaStack Component', () => {
     expect(screen.getByText('Custom Comment Icon')).toBeInTheDocument();
   });
 
+  it('supports renderExtraActions slot to append custom buttons to the sidebar', () => {
+    render(
+      <MediaStack
+        items={[testItems[0]]}
+        renderExtraActions={(_, index) => (
+          <button data-testid="extra-bookmark-btn">Bookmark {index}</button>
+        )}
+      />
+    );
+    expect(screen.getByTestId('extra-bookmark-btn')).toHaveTextContent('Bookmark 0');
+  });
+
   it('handles dynamically appending new items correctly', () => {
     const { rerender } = render(<MediaStack items={[testItems[0]]} />);
     expect(screen.getByText('Test Video')).toBeInTheDocument();

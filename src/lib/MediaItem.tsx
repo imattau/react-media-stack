@@ -26,6 +26,7 @@ interface MediaItemProps {
   renderLikeButton?: (isActive: boolean, onClick: () => void) => React.ReactNode;
   renderCommentButton?: (onClick: () => void) => React.ReactNode;
   renderShareButton?: (onClick: () => void) => React.ReactNode;
+  renderExtraActions?: (item: MediaItemData, index: number) => React.ReactNode;
   showDevHud?: boolean;
 }
 
@@ -51,6 +52,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   renderLikeButton,
   renderCommentButton,
   renderShareButton,
+  renderExtraActions,
   showDevHud = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -480,6 +482,8 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                       <span className="media-stack-action-count">Share</span>
                     </div>
                   )}
+
+                  {renderExtraActions && renderExtraActions(item, index)}
                 </Overlays.RightStackContainer>
               )}
             </>

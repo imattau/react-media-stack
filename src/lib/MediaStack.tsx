@@ -27,6 +27,7 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
   renderLikeButton,
   renderCommentButton,
   renderShareButton,
+  renderExtraActions,
   preFetchAhead = 2,
   preFetchBehind = 1,
   cacheLimit = 8,
@@ -148,6 +149,7 @@ const MediaStackInner: React.FC<MediaStackProps> = ({
             renderLikeButton={renderLikeButton}
             renderCommentButton={renderCommentButton}
             renderShareButton={renderShareButton}
+            renderExtraActions={renderExtraActions}
             showDevHud={showDevHud}
           />
         ))}
