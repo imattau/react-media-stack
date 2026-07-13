@@ -119,4 +119,19 @@ describe('MediaStack Component', () => {
     expect(screen.getByText('Test Video')).toBeInTheDocument();
     expect(screen.getByText('Test Image')).toBeInTheDocument();
   });
+
+  it('handles rendering empty items array gracefully', () => {
+    const { container } = render(<MediaStack items={[]} />);
+    // Verify container renders but has no media items
+    expect(container.querySelector('.media-stack-container')).toBeInTheDocument();
+    expect(container.querySelectorAll('.media-stack-item-wrapper')).toHaveLength(0);
+  });
+
+  it('applies layout direction classes correctly', () => {
+    const { container, rerender } = render(<MediaStack items={[testItems[0]]} direction="vertical" />);
+    expect(container.querySelector('.media-stack-viewport')).toHaveClass('vertical');
+
+    rerender(<MediaStack items={[testItems[0]]} direction="horizontal" />);
+    expect(container.querySelector('.media-stack-viewport')).toHaveClass('horizontal');
+  });
 });

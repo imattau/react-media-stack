@@ -26,7 +26,7 @@ test.describe('MediaStack E2E Showcase', () => {
   });
 
   test('should toggle controls and update scroll classes', async ({ page }) => {
-    const viewport = page.locator('.media-stack-viewport');
+    const viewport = page.locator('.media-stack-viewport').first();
     
     // Initial scroll direction is vertical
     await expect(viewport).toHaveClass(/vertical/);
