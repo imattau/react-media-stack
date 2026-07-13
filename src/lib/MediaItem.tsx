@@ -467,6 +467,9 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                     description={item.description}
                     expanded={captionExpanded}
                     onToggle={() => setCaptionExpanded(!captionExpanded)}
+                    authorName={item.authorName}
+                    authorAvatarUrl={item.authorAvatarUrl}
+                    authorVerified={item.authorVerified}
                   />
                 )}
                 {/* Horizontal rotating music marquee placeholder */}

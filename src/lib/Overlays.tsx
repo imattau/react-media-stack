@@ -69,18 +69,43 @@ interface ExpandableCaptionProps {
   description?: string;
   expanded: boolean;
   onToggle: () => void;
+  authorName?: string;
+  authorAvatarUrl?: string;
+  authorVerified?: boolean;
 }
 export const ExpandableCaption: React.FC<ExpandableCaptionProps> = ({
   title,
   description,
   expanded,
   onToggle,
+  authorName,
+  authorAvatarUrl,
+  authorVerified,
 }) => {
-  if (!title && !description) return null;
+  if (!title && !description && !authorName) return null;
 
   return (
     <div className="rvf:pointer-events-auto rvf:flex rvf:flex-col rvf:gap-1 rvf:text-white rvf:max-w-md rvf:bg-black/30 rvf:p-3 rvf:rounded-lg rvf:backdrop-blur-sm">
-      {title && <h3 className="rvf:m-0 rvf:font-bold rvf:text-base">{title}</h3>}
+      {(authorName || authorAvatarUrl) && (
+        <div className="rvf:flex rvf:items-center rvf:gap-2 rvf:mb-1.5">
+          {authorAvatarUrl && (
+            <img
+              src={authorAvatarUrl}
+              alt={authorName || 'Author avatar'}
+              className="rvf:w-7 rvf:h-7 rvf:rounded-full rvf:border rvf:border-white/10 rvf:object-cover"
+            />
+          )}
+          <div className="rvf:flex rvf:items-center rvf:gap-1">
+            <span className="rvf:text-xs rvf:font-bold rvf:text-white">{authorName || 'Anonymous'}</span>
+            {authorVerified && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="rvf:text-blue-400">
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
+      {title && <h3 className="rvf:m-0 rvf:font-bold rvf:text-sm">{title}</h3>}
       {description && (
         <p className={cn(
           'rvf:m-0 rvf:text-xs rvf:opacity-90 rvf:transition-all rvf:duration-300 rvf:line-clamp-2',

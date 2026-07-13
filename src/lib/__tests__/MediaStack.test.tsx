@@ -185,4 +185,18 @@ describe('MediaStack Component', () => {
     expect(overlayWrapper).toHaveClass('rvf:opacity-100');
     vi.useRealTimers();
   });
+
+  it('renders publisher profile name and avatar correctly when supplied', () => {
+    const authorItem: MediaItemData = {
+      ...testItems[0],
+      authorName: 'Alex Rivera',
+      authorAvatarUrl: 'https://example.com/avatar.jpg',
+      authorVerified: true,
+    };
+    render(<MediaStack items={[authorItem]} />);
+    expect(screen.getByText('Alex Rivera')).toBeInTheDocument();
+    const avatar = screen.getByAltText('Alex Rivera');
+    expect(avatar).toBeInTheDocument();
+    expect(avatar).toHaveAttribute('src', 'https://example.com/avatar.jpg');
+  });
 });

@@ -9,6 +9,9 @@ export interface MediaItemData {
   description?: string;
   badge?: string;
   fit?: 'cover' | 'contain';
+  authorName?: string;
+  authorAvatarUrl?: string;
+  authorVerified?: boolean;
   // Optional custom data
   customData?: Record<string, any>;
 }
