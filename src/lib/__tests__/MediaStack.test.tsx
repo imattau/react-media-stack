@@ -107,4 +107,16 @@ describe('MediaStack Component', () => {
     expect(screen.getByText('Custom Like Icon')).toBeInTheDocument();
     expect(screen.getByText('Custom Comment Icon')).toBeInTheDocument();
   });
+
+  it('handles dynamically appending new items correctly', () => {
+    const { rerender } = render(<MediaStack items={[testItems[0]]} />);
+    expect(screen.getByText('Test Video')).toBeInTheDocument();
+    expect(screen.queryByText('Test Image')).not.toBeInTheDocument();
+
+    // Append new item to simulate page loading / infinite scroll append
+    rerender(<MediaStack items={[testItems[0], testItems[1]]} />);
+
+    expect(screen.getByText('Test Video')).toBeInTheDocument();
+    expect(screen.getByText('Test Image')).toBeInTheDocument();
+  });
 });
