@@ -15,6 +15,10 @@ interface MediaItemProps {
   onShareClick?: (item: MediaItemData) => void;
   onCommentClick?: (item: MediaItemData) => void;
   renderCustomOverlay?: (item: MediaItemData, index: number, isActive: boolean) => React.ReactNode;
+  showProgressBar?: boolean;
+  showMuteButton?: boolean;
+  showSidebarActions?: boolean;
+  showMetaInfo?: boolean;
 }
 
 export const MediaItem: React.FC<MediaItemProps> = ({
@@ -31,6 +35,10 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   onShareClick,
   onCommentClick,
   renderCustomOverlay,
+  showProgressBar = true,
+  showMuteButton = true,
+  showSidebarActions = true,
+  showMetaInfo = true,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -222,7 +230,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               <div>
                 {item.badge && <span className="media-stack-badge">{item.badge}</span>}
               </div>
-              {item.type === 'video' && (
+              {item.type === 'video' && showMuteButton && (
                 <button
                   type="button"
                   className="media-stack-icon-btn"
@@ -239,79 +247,83 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
             {/* Bottom Row: Metadata (Title/Desc) and Action sidebar (TikTok-style) */}
             <div className="media-stack-content-bottom">
-              <div className="media-stack-meta">
-                {item.title && <h3>{item.title}</h3>}
-                {item.description && <p>{item.description}</p>}
-              </div>
+              {showMetaInfo ? (
+                <div className="media-stack-meta">
+                  {item.title && <h3>{item.title}</h3>}
+                  {item.description && <p>{item.description}</p>}
+                </div>
+              ) : <div className="media-stack-meta" />}
 
-              <div className="media-stack-actions-sidebar">
-                {onLikeClick && (
-                  <div className="media-stack-action-item">
-                    <button
-                      type="button"
-                      className="media-stack-icon-btn"
-                      aria-label="Like"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onLikeClick(item);
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                      </svg>
-                    </button>
-                    <span className="media-stack-action-count">Like</span>
-                  </div>
-                )}
+              {showSidebarActions && (
+                <div className="media-stack-actions-sidebar">
+                  {onLikeClick && (
+                    <div className="media-stack-action-item">
+                      <button
+                        type="button"
+                        className="media-stack-icon-btn"
+                        aria-label="Like"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onLikeClick(item);
+                        }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                      </button>
+                      <span className="media-stack-action-count">Like</span>
+                    </div>
+                  )}
 
-                {onCommentClick && (
-                  <div className="media-stack-action-item">
-                    <button
-                      type="button"
-                      className="media-stack-icon-btn"
-                      aria-label="Reply"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCommentClick(item);
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                      </svg>
-                    </button>
-                    <span className="media-stack-action-count">Reply</span>
-                  </div>
-                )}
+                  {onCommentClick && (
+                    <div className="media-stack-action-item">
+                      <button
+                        type="button"
+                        className="media-stack-icon-btn"
+                        aria-label="Reply"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCommentClick(item);
+                        }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                      </button>
+                      <span className="media-stack-action-count">Reply</span>
+                    </div>
+                  )}
 
-                {onShareClick && (
-                  <div className="media-stack-action-item">
-                    <button
-                      type="button"
-                      className="media-stack-icon-btn"
-                      aria-label="Share"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onShareClick(item);
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="18" cy="5" r="3"></circle>
-                        <circle cx="6" cy="12" r="3"></circle>
-                        <circle cx="18" cy="19" r="3"></circle>
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                      </svg>
-                    </button>
-                    <span className="media-stack-action-count">Share</span>
-                  </div>
-                )}
-              </div>
+                  {onShareClick && (
+                    <div className="media-stack-action-item">
+                      <button
+                        type="button"
+                        className="media-stack-icon-btn"
+                        aria-label="Share"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShareClick(item);
+                        }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3"></circle>
+                          <circle cx="6" cy="12" r="3"></circle>
+                          <circle cx="18" cy="19" r="3"></circle>
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                      </button>
+                      <span className="media-stack-action-count">Share</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Video Timeline Progress bar */}
-        {item.type === 'video' && !renderCustomOverlay && (
+        {item.type === 'video' && !renderCustomOverlay && showProgressBar && (
           <div className="media-stack-progress-container" onClick={handleProgressBarClick}>
             <div className="media-stack-progress-bar" style={{ width: `${progress}%` }} />
           </div>

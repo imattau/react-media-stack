@@ -17,6 +17,10 @@ export const MediaStack: React.FC<MediaStackProps> = ({
   onCommentClick,
   renderCustomOverlay,
   showNavArrows = true,
+  showProgressBar = true,
+  showMuteButton = true,
+  showSidebarActions = true,
+  showMetaInfo = true,
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -113,6 +117,10 @@ export const MediaStack: React.FC<MediaStackProps> = ({
             onShareClick={onShareClick}
             onCommentClick={onCommentClick}
             renderCustomOverlay={renderCustomOverlay}
+            showProgressBar={showProgressBar}
+            showMuteButton={showMuteButton}
+            showSidebarActions={showSidebarActions}
+            showMetaInfo={showMetaInfo}
           />
         ))}
       </div>

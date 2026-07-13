@@ -27,4 +27,8 @@ export interface MediaStackProps {
   onCommentClick?: (item: MediaItemData) => void;
   renderCustomOverlay?: (item: MediaItemData, index: number, isActive: boolean) => React.ReactNode;
   showNavArrows?: boolean;
+  showProgressBar?: boolean;
+  showMuteButton?: boolean;
+  showSidebarActions?: boolean;
+  showMetaInfo?: boolean;
 }
