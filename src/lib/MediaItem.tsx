@@ -171,164 +171,178 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
   return (
     <div className="media-stack-item-wrapper">
-      <div className="media-stack-media-container" onClick={handleVideoClick}>
-        {item.type === 'video' ? (
-          <video
-            ref={videoRef}
-            src={item.src}
-            poster={item.poster}
-            className={`media-stack-media ${item.fit || 'contain'}`}
-            loop={loop}
-            preload="auto"
-            playsInline
-            onTimeUpdate={handleTimeUpdate}
-            onLoadStart={() => setIsLoading(true)}
-            onWaiting={() => setIsLoading(true)}
-            onPlaying={() => {
-              setIsLoading(false);
-              setIsPlaying(true);
-            }}
-            onCanPlay={() => setIsLoading(false)}
-          />
-        ) : (
-          <img
-            src={item.src}
-            alt={item.title || 'Media content'}
-            className={`media-stack-media ${item.fit || 'contain'}`}
-            onLoad={() => setIsLoading(false)}
-          />
-        )}
-
-        {/* Loading Spinner */}
-        {isLoading && (
-          <div className="media-stack-loading">
-            <div className="media-stack-spinner" />
-          </div>
-        )}
-
-        {/* Center Feedback (Play/Pause indicator) */}
-        <div className={`media-stack-center-feedback ${feedback ? 'active' : ''}`}>
-          {feedback === 'play' ? (
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
+      {shouldLoad ? (
+        <div className="media-stack-media-container" onClick={handleVideoClick}>
+          {item.type === 'video' ? (
+            <video
+              ref={videoRef}
+              src={item.src}
+              poster={item.poster}
+              className={`media-stack-media ${item.fit || 'contain'}`}
+              loop={loop}
+              preload="auto"
+              playsInline
+              onTimeUpdate={handleTimeUpdate}
+              onLoadStart={() => setIsLoading(true)}
+              onWaiting={() => setIsLoading(true)}
+              onPlaying={() => {
+                setIsLoading(false);
+                setIsPlaying(true);
+              }}
+              onCanPlay={() => setIsLoading(false)}
+            />
           ) : (
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16"></rect>
-              <rect x="14" y="4" width="4" height="16"></rect>
-            </svg>
+            <img
+              src={item.src}
+              alt={item.title || 'Media content'}
+              className={`media-stack-media ${item.fit || 'contain'}`}
+              onLoad={() => setIsLoading(false)}
+            />
+          )}
+
+          {/* Loading Spinner */}
+          {isLoading && (
+            <div className="media-stack-loading">
+              <div className="media-stack-spinner" />
+            </div>
+          )}
+
+          {/* Center Feedback (Play/Pause indicator) */}
+          <div className={`media-stack-center-feedback ${feedback ? 'active' : ''}`}>
+            {feedback === 'play' ? (
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+            ) : (
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            )}
+          </div>
+
+          {/* Overlays */}
+          {renderCustomOverlay ? (
+            renderCustomOverlay(item, index, isActive)
+          ) : (
+            <div className="media-stack-overlay">
+              {/* Top Row: Info badge & Mute button */}
+              <div className="media-stack-header">
+                <div>
+                  {item.badge && <span className="media-stack-badge">{item.badge}</span>}
+                </div>
+                {item.type === 'video' && showMuteButton && (
+                  <button
+                    type="button"
+                    className="media-stack-icon-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMuteToggle();
+                    }}
+                    title={muted ? 'Unmute' : 'Mute'}
+                  >
+                    {renderMuteIcon()}
+                  </button>
+                )}
+              </div>
+
+              {/* Bottom Row: Metadata (Title/Desc) and Action sidebar (TikTok-style) */}
+              <div className="media-stack-content-bottom">
+                {showMetaInfo ? (
+                  <div className="media-stack-meta">
+                    {item.title && <h3>{item.title}</h3>}
+                    {item.description && <p>{item.description}</p>}
+                  </div>
+                ) : <div className="media-stack-meta" />}
+
+                {showSidebarActions && (
+                  <div className="media-stack-actions-sidebar">
+                    {onLikeClick && (
+                      <div className="media-stack-action-item">
+                        <button
+                          type="button"
+                          className="media-stack-icon-btn"
+                          aria-label="Like"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onLikeClick(item);
+                          }}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                          </svg>
+                        </button>
+                        <span className="media-stack-action-count">Like</span>
+                      </div>
+                    )}
+
+                    {onCommentClick && (
+                      <div className="media-stack-action-item">
+                        <button
+                          type="button"
+                          className="media-stack-icon-btn"
+                          aria-label="Reply"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCommentClick(item);
+                          }}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                          </svg>
+                        </button>
+                        <span className="media-stack-action-count">Reply</span>
+                      </div>
+                    )}
+
+                    {onShareClick && (
+                      <div className="media-stack-action-item">
+                        <button
+                          type="button"
+                          className="media-stack-icon-btn"
+                          aria-label="Share"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onShareClick(item);
+                          }}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                          </svg>
+                        </button>
+                        <span className="media-stack-action-count">Share</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Video Timeline Progress bar */}
+          {item.type === 'video' && !renderCustomOverlay && showProgressBar && (
+            <div className="media-stack-progress-container" onClick={handleProgressBarClick}>
+              <div className="media-stack-progress-bar" style={{ width: `${progress}%` }} />
+            </div>
           )}
         </div>
-
-        {/* Overlays */}
-        {renderCustomOverlay ? (
-          renderCustomOverlay(item, index, isActive)
-        ) : (
-          <div className="media-stack-overlay">
-            {/* Top Row: Info badge & Mute button */}
-            <div className="media-stack-header">
-              <div>
-                {item.badge && <span className="media-stack-badge">{item.badge}</span>}
-              </div>
-              {item.type === 'video' && showMuteButton && (
-                <button
-                  type="button"
-                  className="media-stack-icon-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMuteToggle();
-                  }}
-                  title={muted ? 'Unmute' : 'Mute'}
-                >
-                  {renderMuteIcon()}
-                </button>
-              )}
-            </div>
-
-            {/* Bottom Row: Metadata (Title/Desc) and Action sidebar (TikTok-style) */}
-            <div className="media-stack-content-bottom">
-              {showMetaInfo ? (
-                <div className="media-stack-meta">
-                  {item.title && <h3>{item.title}</h3>}
-                  {item.description && <p>{item.description}</p>}
-                </div>
-              ) : <div className="media-stack-meta" />}
-
-              {showSidebarActions && (
-                <div className="media-stack-actions-sidebar">
-                  {onLikeClick && (
-                    <div className="media-stack-action-item">
-                      <button
-                        type="button"
-                        className="media-stack-icon-btn"
-                        aria-label="Like"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onLikeClick(item);
-                        }}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                      </button>
-                      <span className="media-stack-action-count">Like</span>
-                    </div>
-                  )}
-
-                  {onCommentClick && (
-                    <div className="media-stack-action-item">
-                      <button
-                        type="button"
-                        className="media-stack-icon-btn"
-                        aria-label="Reply"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCommentClick(item);
-                        }}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                      </button>
-                      <span className="media-stack-action-count">Reply</span>
-                    </div>
-                  )}
-
-                  {onShareClick && (
-                    <div className="media-stack-action-item">
-                      <button
-                        type="button"
-                        className="media-stack-icon-btn"
-                        aria-label="Share"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onShareClick(item);
-                        }}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="18" cy="5" r="3"></circle>
-                          <circle cx="6" cy="12" r="3"></circle>
-                          <circle cx="18" cy="19" r="3"></circle>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                        </svg>
-                      </button>
-                      <span className="media-stack-action-count">Share</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Video Timeline Progress bar */}
-        {item.type === 'video' && !renderCustomOverlay && showProgressBar && (
-          <div className="media-stack-progress-container" onClick={handleProgressBarClick}>
-            <div className="media-stack-progress-bar" style={{ width: `${progress}%` }} />
-          </div>
-        )}
-      </div>
+      ) : (
+        /* Virtualized Placeholder Shell: completely unmounts the resource and overlays from DOM tree */
+        <div className="media-stack-media-container" style={{ background: '#0a0a0e' }}>
+          {item.poster && (
+            <img
+              src={item.poster}
+              className="media-stack-media cover"
+              alt=""
+              style={{ opacity: 0.15, filter: 'blur(10px)' }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };
