@@ -1,20 +1,38 @@
 {
-  "name": "media_stack",
-  "private": true,
-  "version": "0.0.0",
+  "name": "react-media-stack",
+  "private": false,
+  "version": "1.0.0",
   "type": "module",
+  "description": "High-performance scrolling React media feed library with virtualisation, caching, and custom overlay slots.",
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    },
+    "./dist/index.css": "./dist/react-media-stack.css"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:lib": "vite build --config vite.config.lib.ts && tsc --project tsconfig.app.json --declaration --emitDeclarationOnly --outDir dist --noEmit false --rootDir src && echo \"export * from './lib/index';\" > dist/index.d.ts",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },
+  "peerDependencies": {
+    "react": "^19.0.0 || ^18.0.0",
+    "react-dom": "^19.0.0 || ^18.0.0"
+  },
   "dependencies": {
-    "hls.js": "^1.6.16",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "hls.js": "^1.6.16"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
@@ -30,10 +48,13 @@
     "jsdom": "^29.1.1",
     "oxlint": "^1.71.0",
     "postcss": "^8.5.18",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
+    "vite-plugin-dts": "^5.0.3",
     "vitest": "^4.1.10"
   }
 }
