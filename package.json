@@ -1,7 +1,7 @@
 {
   "name": "react-media-stack",
   "private": false,
-  "version": "1.0.11",
+  "version": "1.0.12",
   "type": "module",
   "description": "High-performance scrolling React media feed library with virtualisation, caching, and custom overlay slots.",
   "main": "./dist/index.umd.js",
