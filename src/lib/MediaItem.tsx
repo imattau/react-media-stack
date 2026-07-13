@@ -80,12 +80,16 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressActiveRef = useRef(false);
 
-  // Reset overlay visibility when item becomes inactive
+  // NSFW Blur State
+  const [isNsfwBlurred, setIsNsfwBlurred] = useState(item.nsfw ?? false);
+
+  // Reset overlay visibility and NSFW blur when item becomes inactive
   useEffect(() => {
     if (!isActive) {
       setAreOverlaysHidden(false);
+      setIsNsfwBlurred(item.nsfw ?? false);
     }
-  }, [isActive]);
+  }, [isActive, item.nsfw]);
 
   // Clean up timeouts on unmount
   useEffect(() => {
@@ -258,6 +262,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
   const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
     if ('button' in e && e.button !== 0) return;
+    if (isNsfwBlurred) return;
 
     if (longPressTimeoutRef.current) {
       clearTimeout(longPressTimeoutRef.current);
@@ -291,6 +296,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
   const handleVideoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isNsfwBlurred) return;
     
     // Ignore click action if long press was active
     if (isLongPressActiveRef.current) {
@@ -381,6 +387,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               src={resolvedMediaSrc}
               poster={item.poster}
               className={`media-stack-media ${item.fit || 'contain'} ${autoRotateLandscape && isLandscape ? 'rotated' : ''}`}
+              style={isNsfwBlurred ? { filter: 'blur(30px)', transform: 'scale(1.05)', transition: 'filter 0.5s ease, transform 0.5s ease' } : { transition: 'filter 0.5s ease, transform 0.5s ease' }}
               loop={loop}
               preload="auto"
               playsInline
@@ -402,6 +409,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               src={item.src}
               alt={item.title || 'Media content'}
               className={`media-stack-media ${item.fit || 'contain'} ${autoRotateLandscape && isLandscape ? 'rotated' : ''}`}
+              style={isNsfwBlurred ? { filter: 'blur(30px)', transform: 'scale(1.05)', transition: 'filter 0.5s ease, transform 0.5s ease' } : { transition: 'filter 0.5s ease, transform 0.5s ease' }}
               onLoad={(e) => {
                 setIsLoading(false);
                 const img = e.currentTarget;
@@ -564,6 +572,31 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           {item.type === 'video' && !renderCustomOverlay && showProgressBar && (
             <div className={`media-stack-progress-container rvf:pointer-events-auto rvf:transition-opacity rvf:duration-300 ${areOverlaysHidden ? 'rvf:opacity-0' : 'rvf:opacity-100'}`} onClick={handleProgressBarClick}>
               <div className="media-stack-progress-bar" style={{ width: `${progress}%` }} />
+            </div>
+          )}
+
+          {/* NSFW Blur Overlay */}
+          {isNsfwBlurred && (
+            <div className="rvf:absolute rvf:inset-0 rvf:z-30 rvf:bg-black/80 rvf:backdrop-blur-lg rvf:flex rvf:flex-col rvf:items-center rvf:justify-center rvf:p-6 rvf:text-center">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="rvf:text-red-500 rvf:mb-3">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" strokeLinecap="round" strokeLinejoin="round"></path>
+              </svg>
+              <h4 className="rvf:text-white rvf:font-bold rvf:text-sm rvf:mb-1">Sensitive Content</h4>
+              <p className="rvf:text-gray-300 rvf:text-[11px] rvf:max-w-[240px] rvf:mb-5 rvf:leading-relaxed">This post contains sensitive content which some people may find offensive or disturbing.</p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsNsfwBlurred(false);
+                  const video = videoRef.current;
+                  if (video && item.type === 'video' && isActive) {
+                    video.play().then(() => setIsPlaying(true));
+                  }
+                }}
+                className="rvf:bg-white rvf:text-black rvf:text-[10px] rvf:font-bold rvf:px-4 rvf:py-2 rvf:rounded-full rvf:hover:bg-gray-200 rvf:transition-colors rvf:cursor-pointer shadow-md"
+              >
+                Show Content
+              </button>
             </div>
           )}
         </div>

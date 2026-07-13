@@ -12,6 +12,7 @@ export interface MediaItemData {
   authorName?: string;
   authorAvatarUrl?: string;
   authorVerified?: boolean;
+  nsfw?: boolean;
   // Optional custom data
   customData?: Record<string, any>;
 }

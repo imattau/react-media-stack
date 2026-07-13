@@ -199,4 +199,19 @@ describe('MediaStack Component', () => {
     expect(avatar).toBeInTheDocument();
     expect(avatar).toHaveAttribute('src', 'https://example.com/avatar.jpg');
   });
+
+  it('applies blur and renders warning overlay when nsfw is true, and unblurs on click', () => {
+    const nsfwItem: MediaItemData = {
+      ...testItems[0],
+      nsfw: true,
+    };
+    render(<MediaStack items={[nsfwItem]} />);
+    
+    expect(screen.getByText('Sensitive Content')).toBeInTheDocument();
+    const showBtn = screen.getByRole('button', { name: 'Show Content' });
+    expect(showBtn).toBeInTheDocument();
+
+    fireEvent.click(showBtn);
+    expect(screen.queryByText('Sensitive Content')).not.toBeInTheDocument();
+  });
 });
