@@ -194,7 +194,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         video.muted = muted;
       }
 
-      if (isActive && autoPlay) {
+      if (isActive && autoPlay && !isNsfwBlurred) {
         const playPromise = video.play();
         if (playPromise !== undefined) {
           playPromise
@@ -229,7 +229,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       video.removeAttribute('src');
       video.load();
     }
-  }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, captionExpanded]);
+  }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, captionExpanded, isNsfwBlurred]);
 
   // Sync mute state
   useEffect(() => {
