@@ -89,6 +89,11 @@
   object-fit: cover;
 }
 
+.media-stack-media.rotated {
+  transform: rotate(90deg);
+  object-fit: cover;
+}
+
 /* Loading state */
 .media-stack-loading {
   position: absolute;

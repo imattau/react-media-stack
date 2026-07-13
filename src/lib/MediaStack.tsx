@@ -21,6 +21,7 @@ export const MediaStack: React.FC<MediaStackProps> = ({
   showMuteButton = true,
   showSidebarActions = true,
   showMetaInfo = true,
+  autoRotateLandscape = false,
 }) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -121,6 +122,7 @@ export const MediaStack: React.FC<MediaStackProps> = ({
             showMuteButton={showMuteButton}
             showSidebarActions={showSidebarActions}
             showMetaInfo={showMetaInfo}
+            autoRotateLandscape={autoRotateLandscape}
           />
         ))}
       </div>

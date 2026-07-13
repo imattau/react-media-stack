@@ -19,6 +19,7 @@ interface MediaItemProps {
   showMuteButton?: boolean;
   showSidebarActions?: boolean;
   showMetaInfo?: boolean;
+  autoRotateLandscape?: boolean;
 }
 
 export const MediaItem: React.FC<MediaItemProps> = ({
@@ -39,12 +40,14 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   showMuteButton = true,
   showSidebarActions = true,
   showMetaInfo = true,
+  autoRotateLandscape = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [feedback, setFeedback] = useState<'play' | 'pause' | null>(null);
+  const [isLandscape, setIsLandscape] = useState(false);
   const feedbackTimeout = useRef<number | null>(null);
 
   // Clean up timeouts on unmount to prevent leaks
@@ -178,11 +181,15 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               ref={videoRef}
               src={item.src}
               poster={item.poster}
-              className={`media-stack-media ${item.fit || 'contain'}`}
+              className={`media-stack-media ${item.fit || 'contain'} ${autoRotateLandscape && isLandscape ? 'rotated' : ''}`}
               loop={loop}
               preload="auto"
               playsInline
               onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={(e) => {
+                const vid = e.currentTarget;
+                setIsLandscape(vid.videoWidth > vid.videoHeight);
+              }}
               onLoadStart={() => setIsLoading(true)}
               onWaiting={() => setIsLoading(true)}
               onPlaying={() => {
@@ -195,8 +202,12 @@ export const MediaItem: React.FC<MediaItemProps> = ({
             <img
               src={item.src}
               alt={item.title || 'Media content'}
-              className={`media-stack-media ${item.fit || 'contain'}`}
-              onLoad={() => setIsLoading(false)}
+              className={`media-stack-media ${item.fit || 'contain'} ${autoRotateLandscape && isLandscape ? 'rotated' : ''}`}
+              onLoad={(e) => {
+                setIsLoading(false);
+                const img = e.currentTarget;
+                setIsLandscape(img.naturalWidth > img.naturalHeight);
+              }}
             />
           )}
 

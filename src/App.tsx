@@ -67,6 +67,7 @@ function App() {
   const [fit, setFit] = useState<'cover' | 'contain'>('cover');
   const [hideScrollbar, setHideScrollbar] = useState(true);
   const [showNavArrows, setShowNavArrows] = useState(true);
+  const [autoRotateLandscape, setAutoRotateLandscape] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const [logs, setLogs] = useState<LogMessage[]>([
@@ -147,6 +148,7 @@ function App() {
               onLikeClick={handleLike}
               onShareClick={handleShare}
               onCommentClick={handleComment}
+              autoRotateLandscape={autoRotateLandscape}
             />
           </div>
         </div>
@@ -325,6 +327,33 @@ function App() {
                     type="button"
                     className={`btn-toggle ${!showNavArrows ? 'active' : ''}`}
                     onClick={() => setShowNavArrows(false)}
+                  >
+                    OFF
+                  </button>
+                </div>
+              </div>
+
+              {/* Auto Rotate Landscape */}
+              <div className="config-row">
+                <span className="config-label">Auto-Rotate Landscape</span>
+                <div className="btn-toggle-group">
+                  <button
+                    type="button"
+                    className={`btn-toggle ${autoRotateLandscape ? 'active' : ''}`}
+                    onClick={() => {
+                      setAutoRotateLandscape(true);
+                      addLog('Enabled auto-rotation for landscape media.');
+                    }}
+                  >
+                    ON
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn-toggle ${!autoRotateLandscape ? 'active' : ''}`}
+                    onClick={() => {
+                      setAutoRotateLandscape(false);
+                      addLog('Disabled auto-rotation for landscape media.');
+                    }}
                   >
                     OFF
                   </button>

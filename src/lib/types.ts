@@ -31,4 +31,5 @@ export interface MediaStackProps {
   showMuteButton?: boolean;
   showSidebarActions?: boolean;
   showMetaInfo?: boolean;
+  autoRotateLandscape?: boolean;
 }
