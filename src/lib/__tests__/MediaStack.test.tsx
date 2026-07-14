@@ -356,4 +356,37 @@ describe('MediaStack Component', () => {
 
     expect(mockActiveIndexChange).toHaveBeenLastCalledWith(1);
   });
+
+  it('ensures at most one video is playing at any time', () => {
+    const playSpy = vi.fn().mockImplementation(function(this: any) {
+      this._testIsPlaying = true;
+      return Promise.resolve();
+    });
+    const pauseSpy = vi.fn().mockImplementation(function(this: any) {
+      this._testIsPlaying = false;
+    });
+    HTMLVideoElement.prototype.play = playSpy;
+    HTMLVideoElement.prototype.pause = pauseSpy;
+
+    const { container } = render(
+      <MediaStack 
+        items={[
+          { id: 'v1', type: 'video', src: 'https://example.com/v1.mp4' },
+          { id: 'v2', type: 'video', src: 'https://example.com/v2.mp4' },
+          { id: 'v3', type: 'video', src: 'https://example.com/v3.mp4' }
+        ]} 
+        autoPlay={true}
+      />
+    );
+
+    const videos = Array.from(container.querySelectorAll('video')) as any[];
+    expect(videos.length).toBeGreaterThan(0);
+
+    const playingVideos = videos.filter(v => v._testIsPlaying);
+    expect(playingVideos).toHaveLength(1);
+    expect(videos[0]._testIsPlaying).toBe(true);
+    if (videos[1]) {
+      expect(videos[1]._testIsPlaying).not.toBe(true);
+    }
+  });
 });
