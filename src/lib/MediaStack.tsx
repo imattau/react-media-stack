@@ -86,11 +86,14 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   const prevItemsRef = useRef(items);
   useLayoutEffect(() => {
     if (items !== prevItemsRef.current) {
-      isUpdatingItemsRef.current = true;
-      const prevActiveItem = prevItemsRef.current[activeIndex];
+      const prevItems = prevItemsRef.current;
+      prevItemsRef.current = items;
+
+      const prevActiveItem = prevItems[activeIndex];
       if (prevActiveItem) {
         const newIndex = items.findIndex((item) => item.id === prevActiveItem.id);
         if (newIndex !== -1 && newIndex !== activeIndex) {
+          isUpdatingItemsRef.current = true;
           const viewport = viewportRef.current;
           if (viewport) {
             if (direction === 'vertical') {
@@ -107,14 +110,13 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
           }
           setActiveIndex(newIndex);
           lastIndexRef.current = newIndex;
+
+          const timer = setTimeout(() => {
+            isUpdatingItemsRef.current = false;
+          }, 50);
+          return () => clearTimeout(timer);
         }
       }
-      prevItemsRef.current = items;
-
-      const timer = setTimeout(() => {
-        isUpdatingItemsRef.current = false;
-      }, 50);
-      return () => clearTimeout(timer);
     }
   }, [items, activeIndex, direction]);
 
