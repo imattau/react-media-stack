@@ -212,7 +212,10 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         video.muted = muted;
       }
 
-      if (isActive && autoPlay && !isNsfwBlurred) {
+      if (!isActive || isNsfwBlurred) {
+        video.pause();
+        setIsPlaying(false);
+      } else if (autoPlay) {
         const playPromise = video.play();
         if (playPromise !== undefined) {
           playPromise
@@ -224,9 +227,6 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               setIsPlaying(false);
             });
         }
-      } else {
-        video.pause();
-        setIsPlaying(false);
       }
     } else {
       // Save state immediately before unloading element source

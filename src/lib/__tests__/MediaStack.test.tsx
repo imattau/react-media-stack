@@ -201,19 +201,30 @@ describe('MediaStack Component', () => {
     expect(avatar).toHaveAttribute('src', 'https://example.com/avatar.jpg');
   });
 
-  it('applies blur and renders warning overlay when nsfw is true, and unblurs on click', () => {
+  it('applies blur and renders warning overlay when nsfw is true, and unblurs/plays on click even if autoPlay is false', () => {
+    const playSpy = vi.fn().mockReturnValue(Promise.resolve());
+    const pauseSpy = vi.fn();
+    HTMLVideoElement.prototype.play = playSpy;
+    HTMLVideoElement.prototype.pause = pauseSpy;
+
     const nsfwItem: MediaItemData = {
       ...testItems[0],
       nsfw: true,
     };
-    render(<MediaStack items={[nsfwItem]} />);
+    render(<MediaStack items={[nsfwItem]} autoPlay={false} />);
     
     expect(screen.getByText('Sensitive Content')).toBeInTheDocument();
+    expect(pauseSpy).toHaveBeenCalled();
+    
     const showBtn = screen.getByRole('button', { name: 'Show Content' });
     expect(showBtn).toBeInTheDocument();
 
-    fireEvent.click(showBtn);
+    act(() => {
+      fireEvent.click(showBtn);
+    });
+    
     expect(screen.queryByText('Sensitive Content')).not.toBeInTheDocument();
+    expect(playSpy).toHaveBeenCalled();
   });
 
   it('supports renderAuthor slot to custom-render publisher details', () => {
