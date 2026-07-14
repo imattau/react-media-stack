@@ -190,7 +190,12 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       } else {
         // Standard video source (pre-fetched blobs or network URLs)
         const resolvedSrc = getMediaUrl(item.src);
-        if (!video.src || video.src === '' || !video.src.includes(resolvedSrc)) {
+        const currentSrc = video.src;
+        const isAlreadyPlayingCurrent = 
+          currentSrc && 
+          (currentSrc.includes(item.src) || (resolvedSrc.startsWith('blob:') && currentSrc === resolvedSrc));
+
+        if (!isAlreadyPlayingCurrent) {
           video.src = resolvedSrc;
           video.load();
 
@@ -424,7 +429,6 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           {item.type === 'video' ? (
             <video
               ref={setVideoRef}
-              src={resolvedMediaSrc}
               poster={item.poster}
               className={`media-stack-media ${item.fit || 'contain'} ${autoRotateLandscape && isLandscape ? 'rotated' : ''}`}
               style={isNsfwBlurred ? { filter: 'blur(30px)', transform: 'scale(1.05)', transition: 'filter 0.5s ease, transform 0.5s ease' } : { transition: 'filter 0.5s ease, transform 0.5s ease' }}
