@@ -389,4 +389,57 @@ describe('MediaStack Component', () => {
       expect(videos[1]._testIsPlaying).not.toBe(true);
     }
   });
+
+  it('ensures only the correct active video plays when items are prepended in the background', () => {
+    const playSpy = vi.fn().mockImplementation(function(this: any) {
+      this._testIsPlaying = true;
+      return Promise.resolve();
+    });
+    const pauseSpy = vi.fn().mockImplementation(function(this: any) {
+      this._testIsPlaying = false;
+    });
+    HTMLVideoElement.prototype.play = playSpy;
+    HTMLVideoElement.prototype.pause = pauseSpy;
+
+    const initialItems: MediaItemData[] = [
+      { id: 'v1', type: 'video', src: 'https://example.com/v1.mp4' },
+      { id: 'v2', type: 'video', src: 'https://example.com/v2.mp4' }
+    ];
+
+    const { container, rerender } = render(
+      <MediaStack items={initialItems} autoPlay={true} />
+    );
+
+    let videos = Array.from(container.querySelectorAll('video')) as any[];
+    expect(videos.length).toBeGreaterThan(0);
+    
+    expect(videos[0]._testIsPlaying).toBe(true);
+    if (videos[1]) {
+      expect(videos[1]._testIsPlaying).not.toBe(true);
+    }
+
+    const prependedItem: MediaItemData = {
+      id: 'v0',
+      type: 'video',
+      src: 'https://example.com/v0.mp4',
+    };
+
+    act(() => {
+      rerender(
+        <MediaStack items={[prependedItem, ...initialItems]} autoPlay={true} />
+      );
+    });
+
+    videos = Array.from(container.querySelectorAll('video')) as any[];
+    const playingVideos = videos.filter(v => v._testIsPlaying);
+    expect(playingVideos).toHaveLength(1);
+    
+    const v1Element = videos.find(v => v.src.includes('v1.mp4'));
+    const v0Element = videos.find(v => v.src.includes('v0.mp4'));
+    
+    expect(v1Element?._testIsPlaying).toBe(true);
+    if (v0Element) {
+      expect(v0Element._testIsPlaying).not.toBe(true);
+    }
+  });
 });
