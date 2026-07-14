@@ -80,6 +80,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
   const hlsRef = useRef<Hls | null>(null);
   const hlsSrcRef = useRef<string | null>(null);
+  const loadedSrcRef = useRef<string | null>(null);
 
   const { getPlaybackState, savePlaybackState, getMediaUrl, markInUse, markNotInUse } = useVideoCache();
 
@@ -115,6 +116,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         }
       }
       videoRef.current = null;
+      loadedSrcRef.current = null;
     }
   }, [item.id, savePlaybackState]);
 
@@ -205,14 +207,12 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       } else {
         // Standard video source (pre-fetched blobs or network URLs)
         const resolvedSrc = getMediaUrl(item.src);
-        const currentSrc = video.src;
-        const isAlreadyPlayingCurrent = 
-          currentSrc && 
-          (currentSrc === resolvedSrc || currentSrc === item.src);
+        const isAlreadyPlayingCurrent = loadedSrcRef.current === item.src;
 
         if (!isAlreadyPlayingCurrent) {
           video.src = resolvedSrc;
           video.load();
+          loadedSrcRef.current = item.src;
 
           // Restore cached playtime index
           const cached = getPlaybackState(item.id);
@@ -287,6 +287,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           } catch {
             // ignore
           }
+          loadedSrcRef.current = null;
         }
       }
       if ((!shouldLoad || !isMountedRef.current) && hlsRef.current) {
