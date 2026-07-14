@@ -45,6 +45,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   const [scrollDirection, setScrollDirection] = useState<'forward' | 'backward'>('forward');
   const lastIndexRef = useRef(0);
   const isFirstRender = useRef(true);
+  const isUpdatingItemsRef = useRef(false);
 
   const { preloadIndices } = useVideoCache();
 
@@ -85,6 +86,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   const prevItemsRef = useRef(items);
   useLayoutEffect(() => {
     if (items !== prevItemsRef.current) {
+      isUpdatingItemsRef.current = true;
       const prevActiveItem = prevItemsRef.current[activeIndex];
       if (prevActiveItem) {
         const newIndex = items.findIndex((item) => item.id === prevActiveItem.id);
@@ -93,10 +95,14 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
           if (viewport) {
             if (direction === 'vertical') {
               const height = viewport.clientHeight;
-              viewport.scrollTop = newIndex * height;
+              if (height > 0) {
+                viewport.scrollTop = newIndex * height;
+              }
             } else {
               const width = viewport.clientWidth;
-              viewport.scrollLeft = newIndex * width;
+              if (width > 0) {
+                viewport.scrollLeft = newIndex * width;
+              }
             }
           }
           setActiveIndex(newIndex);
@@ -104,6 +110,11 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
         }
       }
       prevItemsRef.current = items;
+
+      const timer = setTimeout(() => {
+        isUpdatingItemsRef.current = false;
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [items, activeIndex, direction]);
 
@@ -160,6 +171,8 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
 
   // Handle scroll events to detect active item
   const handleScroll = () => {
+    if (isUpdatingItemsRef.current) return;
+
     const viewport = viewportRef.current;
     if (!viewport) return;
 
