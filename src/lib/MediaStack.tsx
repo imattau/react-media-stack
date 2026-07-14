@@ -82,7 +82,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     setActiveIndex(index);
   }, [direction]);
 
-  // Keep activeIndex and scroll position synchronized when items list changes (e.g. prepended items)
+  // Keep activeIndex and scroll position synchronized when items list changes (e.g. prepended items or filtered list)
   const prevItemsRef = useRef(items);
   useLayoutEffect(() => {
     if (items !== prevItemsRef.current) {
@@ -90,9 +90,10 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
       prevItemsRef.current = items;
 
       const prevActiveItem = prevItems[activeIndex];
-      if (prevActiveItem) {
-        const newIndex = items.findIndex((item) => item.id === prevActiveItem.id);
-        if (newIndex !== -1 && newIndex !== activeIndex) {
+      const newIndex = prevActiveItem ? items.findIndex((item) => item.id === prevActiveItem.id) : -1;
+
+      if (newIndex !== -1) {
+        if (newIndex !== activeIndex) {
           isUpdatingItemsRef.current = true;
           const viewport = viewportRef.current;
           if (viewport) {
@@ -116,6 +117,32 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
           }, 50);
           return () => clearTimeout(timer);
         }
+      } else {
+        // Active item was filtered out or doesn't exist anymore; adjust to nearest valid index
+        const fallbackIndex = items.length > 0 ? Math.min(activeIndex, items.length - 1) : 0;
+        
+        isUpdatingItemsRef.current = true;
+        const viewport = viewportRef.current;
+        if (viewport && items.length > 0) {
+          if (direction === 'vertical') {
+            const height = viewport.clientHeight;
+            if (height > 0) {
+              viewport.scrollTop = fallbackIndex * height;
+            }
+          } else {
+            const width = viewport.clientWidth;
+            if (width > 0) {
+              viewport.scrollLeft = fallbackIndex * width;
+            }
+          }
+        }
+        setActiveIndex(fallbackIndex);
+        lastIndexRef.current = fallbackIndex;
+
+        const timer = setTimeout(() => {
+          isUpdatingItemsRef.current = false;
+        }, 50);
+        return () => clearTimeout(timer);
       }
     }
   }, [items, activeIndex, direction]);

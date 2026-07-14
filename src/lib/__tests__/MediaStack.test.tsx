@@ -453,4 +453,47 @@ describe('MediaStack Component', () => {
       expect(v0Element._testIsPlaying).not.toBe(true);
     }
   });
+
+  it('adjusts activeIndex to nearest fallback index when the active item is filtered out', () => {
+    const ref = React.createRef<MediaStackRef>();
+    const mockActiveIndexChange = vi.fn();
+    const itemsList: MediaItemData[] = [
+      { id: 'v1', type: 'video', src: 'https://example.com/v1.mp4' },
+      { id: 'v2', type: 'video', src: 'https://example.com/v2.mp4' },
+      { id: 'v3', type: 'video', src: 'https://example.com/v3.mp4' }
+    ];
+
+    const { rerender } = render(
+      <MediaStack 
+        ref={ref}
+        items={itemsList} 
+        onActiveIndexChange={mockActiveIndexChange}
+      />
+    );
+
+    // Scroll to index 2 (end)
+    act(() => {
+      ref.current?.scrollTo('end');
+    });
+
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(2);
+    mockActiveIndexChange.mockClear();
+
+    // Now rerender with v3 filtered out. Expect fallback index to clamp to 1 (which now points to v2)
+    act(() => {
+      rerender(
+        <MediaStack 
+          ref={ref}
+          items={[
+            { id: 'v1', type: 'video', src: 'https://example.com/v1.mp4' },
+            { id: 'v2', type: 'video', src: 'https://example.com/v2.mp4' }
+          ]} 
+          onActiveIndexChange={mockActiveIndexChange}
+        />
+      );
+    });
+
+    // Fallback index should be 1 (index of v2) since index 2 is out of bounds
+    expect(mockActiveIndexChange).toHaveBeenCalledWith(1);
+  });
 });
