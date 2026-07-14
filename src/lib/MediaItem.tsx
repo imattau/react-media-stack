@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import type { MediaItemData } from './types';
 import { useVideoCache } from './VideoCacheContext';
 import * as Overlays from './Overlays';
@@ -85,6 +85,33 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const cachedState = getPlaybackState(item.id);
   const [captionExpanded, setCaptionExpanded] = useState(cachedState?.captionExpanded ?? false);
 
+  const captionExpandedRef = useRef(captionExpanded);
+  useEffect(() => {
+    captionExpandedRef.current = captionExpanded;
+  }, [captionExpanded]);
+
+  const setVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    if (node) {
+      videoRef.current = node;
+    } else {
+      const video = videoRef.current;
+      if (video) {
+        savePlaybackState(item.id, {
+          currentTime: video.currentTime,
+          captionExpanded: captionExpandedRef.current,
+        });
+        video.pause();
+        video.removeAttribute('src');
+        try {
+          video.load();
+        } catch (e) {
+          // ignore
+        }
+      }
+      videoRef.current = null;
+    }
+  }, [item.id, savePlaybackState]);
+
   // Long Press to Hide Overlays States & Refs
   const [localAreOverlaysHidden, setLocalAreOverlaysHidden] = useState(false);
   const areOverlaysHidden = areOverlaysHiddenProp !== undefined ? areOverlaysHiddenProp : localAreOverlaysHidden;
@@ -114,29 +141,15 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     };
   }, []);
 
-  // Save state and destroy HLS instance on unmount
+  // Destroy HLS instance on unmount
   useEffect(() => {
     return () => {
-      const video = videoRef.current;
-      if (video && item.type === 'video') {
-        savePlaybackState(item.id, {
-          currentTime: video.currentTime,
-          captionExpanded,
-        });
-        video.pause();
-        video.removeAttribute('src');
-        try {
-          video.load();
-        } catch (e) {
-          // ignore error
-        }
-      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [item.id, item.type, savePlaybackState, captionExpanded]);
+  }, []);
 
   // Playback coordination and Tier 2 object URL binding
   useEffect(() => {
@@ -410,7 +423,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         >
           {item.type === 'video' ? (
             <video
-              ref={videoRef}
+              ref={setVideoRef}
               src={resolvedMediaSrc}
               poster={item.poster}
               className={`media-stack-media ${item.fit || 'contain'} ${autoRotateLandscape && isLandscape ? 'rotated' : ''}`}
