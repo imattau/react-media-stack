@@ -328,4 +328,32 @@ describe('MediaStack Component', () => {
     });
     expect(mockActiveIndexChange).toHaveBeenLastCalledWith(0);
   });
+
+  it('stabilizes activeIndex and prevents video reset when items are prepended in the background', () => {
+    const mockActiveIndexChange = vi.fn();
+    const { rerender } = render(
+      <MediaStack 
+        items={[testItems[0], testItems[1]]} 
+        onActiveIndexChange={mockActiveIndexChange}
+      />
+    );
+
+    const prependedItem: MediaItemData = {
+      id: '0',
+      type: 'video',
+      src: 'https://example.com/prepended-video.mp4',
+      title: 'Prepended Video',
+    };
+    
+    act(() => {
+      rerender(
+        <MediaStack 
+          items={[prependedItem, testItems[0], testItems[1]]} 
+          onActiveIndexChange={mockActiveIndexChange}
+        />
+      );
+    });
+
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(1);
+  });
 });

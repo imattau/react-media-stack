@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback, useImperativeHandle } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback, useImperativeHandle } from 'react';
 import type { MediaItemData, MediaStackProps, MediaStackRef } from './types';
 import { MediaItem } from './MediaItem';
 import { VideoCacheProvider, useVideoCache } from './VideoCacheContext';
@@ -80,6 +80,32 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     }
     setActiveIndex(index);
   }, [direction]);
+
+  // Keep activeIndex and scroll position synchronized when items list changes (e.g. prepended items)
+  const prevItemsRef = useRef(items);
+  useLayoutEffect(() => {
+    if (items !== prevItemsRef.current) {
+      const prevActiveItem = prevItemsRef.current[activeIndex];
+      if (prevActiveItem) {
+        const newIndex = items.findIndex((item) => item.id === prevActiveItem.id);
+        if (newIndex !== -1 && newIndex !== activeIndex) {
+          const viewport = viewportRef.current;
+          if (viewport) {
+            if (direction === 'vertical') {
+              const height = viewport.clientHeight;
+              viewport.scrollTop = newIndex * height;
+            } else {
+              const width = viewport.clientWidth;
+              viewport.scrollLeft = newIndex * width;
+            }
+          }
+          setActiveIndex(newIndex);
+          lastIndexRef.current = newIndex;
+        }
+      }
+      prevItemsRef.current = items;
+    }
+  }, [items, activeIndex, direction]);
 
   // Sync initial mute prop change
   useEffect(() => {
