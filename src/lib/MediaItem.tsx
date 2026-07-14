@@ -491,9 +491,21 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               }}
               onLoadStart={() => setIsLoading(true)}
               onWaiting={() => setIsLoading(true)}
-              onPlaying={() => {
-                setIsLoading(false);
-                setIsPlaying(true);
+              onPlay={(e) => {
+                const vid = e.currentTarget;
+                if (!isActive) {
+                  vid.pause();
+                }
+              }}
+              onPlaying={(e) => {
+                const vid = e.currentTarget;
+                if (!isActive) {
+                  vid.pause();
+                  setIsPlaying(false);
+                } else {
+                  setIsLoading(false);
+                  setIsPlaying(true);
+                }
               }}
               onCanPlay={() => setIsLoading(false)}
               onEnded={() => onVideoEnded?.(item, index)}
