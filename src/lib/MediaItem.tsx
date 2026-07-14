@@ -66,6 +66,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   onVideoEnded,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isMountedRef = useRef(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -102,6 +103,10 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           captionExpanded: captionExpandedRef.current,
         });
         video.pause();
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
         video.removeAttribute('src');
         try {
           video.load();
@@ -132,7 +137,9 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
   // Clean up timeouts on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (feedbackTimeout.current) {
         window.clearTimeout(feedbackTimeout.current);
       }
@@ -273,6 +280,18 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       if (video) {
         markNotInUse(item.src);
         video.pause();
+        if (!shouldLoad || !isMountedRef.current) {
+          video.removeAttribute('src');
+          try {
+            video.load();
+          } catch {
+            // ignore
+          }
+        }
+      }
+      if ((!shouldLoad || !isMountedRef.current) && hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
       }
     };
   }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, markInUse, markNotInUse, captionExpanded, isNsfwBlurred]);
