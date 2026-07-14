@@ -104,7 +104,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         video.removeAttribute('src');
         try {
           video.load();
-        } catch (e) {
+        } catch {
           // ignore
         }
       }

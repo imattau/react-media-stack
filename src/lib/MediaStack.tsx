@@ -156,7 +156,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     }, autoScrollInterval);
 
     return () => clearInterval(timer);
-  }, [autoScroll, autoScrollInterval, scrollDirection, activeIndex, items.length]);
+  }, [autoScroll, autoScrollInterval, scrollDirection, activeIndex, items.length, scrollToIndex]);
 
   // Trigger background pre-fetching when active slide index changes
   useEffect(() => {
