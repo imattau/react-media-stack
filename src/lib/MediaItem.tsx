@@ -247,6 +247,12 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       video.removeAttribute('src');
       video.load();
     }
+
+    return () => {
+      if (video && (!video.isConnected || !shouldLoad || !isActive)) {
+        video.pause();
+      }
+    };
   }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, captionExpanded, isNsfwBlurred]);
 
   // Sync mute state
