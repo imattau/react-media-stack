@@ -78,8 +78,9 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const [bufferHealth, setBufferHealth] = useState(0);
 
   const hlsRef = useRef<Hls | null>(null);
+  const hlsSrcRef = useRef<string | null>(null);
 
-  const { getPlaybackState, savePlaybackState, getMediaUrl } = useVideoCache();
+  const { getPlaybackState, savePlaybackState, getMediaUrl, markInUse, markNotInUse } = useVideoCache();
 
   // Tier 1 Restore Playback Micro-state on mount
   const cachedState = getPlaybackState(item.id);
@@ -161,11 +162,18 @@ export const MediaItem: React.FC<MediaItemProps> = ({
     if (shouldLoad) {
       if (isHls) {
         if (Hls.isSupported()) {
+          // Re-initialize if src changed
+          if (hlsRef.current && hlsSrcRef.current !== item.src) {
+            hlsRef.current.destroy();
+            hlsRef.current = null;
+            hlsSrcRef.current = null;
+          }
           if (!hlsRef.current) {
             const hls = new Hls({
               maxMaxBufferLength: 10,
             });
             hlsRef.current = hls;
+            hlsSrcRef.current = item.src;
             hls.loadSource(item.src);
             hls.attachMedia(video);
 
@@ -193,7 +201,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         const currentSrc = video.src;
         const isAlreadyPlayingCurrent = 
           currentSrc && 
-          (currentSrc.includes(item.src) || (resolvedSrc.startsWith('blob:') && currentSrc === resolvedSrc));
+          (currentSrc === resolvedSrc || currentSrc === item.src);
 
         if (!isAlreadyPlayingCurrent) {
           video.src = resolvedSrc;
@@ -207,12 +215,19 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         }
       }
 
+      // Mark source as in-use to protect from cache eviction
+      markInUse(item.src);
+
       // Ensure muted state is applied before playing (belt-and-suspenders with the muted HTML attribute)
       if (video.muted !== muted) {
         video.muted = muted;
       }
 
       if (!isActive || isNsfwBlurred) {
+        savePlaybackState(item.id, {
+          currentTime: video.currentTime,
+          captionExpanded,
+        });
         video.pause();
         setIsPlaying(false);
       } else if (autoPlay) {
@@ -227,6 +242,10 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               setIsPlaying(false);
             });
         }
+      } else {
+        // autoPlay explicitly set to false — don't auto-play
+        video.pause();
+        setIsPlaying(false);
       }
     } else {
       // Save state immediately before unloading element source
@@ -244,16 +263,19 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         hlsRef.current = null;
       }
 
+      markNotInUse(item.src);
+
       video.removeAttribute('src');
       video.load();
     }
 
     return () => {
-      if (video && (!video.isConnected || !shouldLoad || !isActive)) {
+      if (video) {
+        markNotInUse(item.src);
         video.pause();
       }
     };
-  }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, captionExpanded, isNsfwBlurred]);
+  }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, markInUse, markNotInUse, captionExpanded, isNsfwBlurred]);
 
   // Sync mute state
   useEffect(() => {

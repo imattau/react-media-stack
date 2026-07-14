@@ -44,6 +44,8 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   const [areOverlaysHidden, setAreOverlaysHidden] = useState(false);
   const [scrollDirection, setScrollDirection] = useState<'forward' | 'backward'>('forward');
   const lastIndexRef = useRef(0);
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
   const isFirstRender = useRef(true);
   const isUpdatingItemsRef = useRef(false);
 
@@ -84,16 +86,24 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
 
   // Keep activeIndex and scroll position synchronized when items list changes (e.g. prepended items or filtered list)
   const prevItemsRef = useRef(items);
+  const itemsChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useLayoutEffect(() => {
+    // Reset guard in case a prior run left it stuck via cleanup clearing the timer
+    if (itemsChangeTimerRef.current) {
+      clearTimeout(itemsChangeTimerRef.current);
+      itemsChangeTimerRef.current = null;
+    }
+
     if (items !== prevItemsRef.current) {
       const prevItems = prevItemsRef.current;
       prevItemsRef.current = items;
 
-      const prevActiveItem = prevItems[activeIndex];
+      const currentActiveIndex = activeIndexRef.current;
+      const prevActiveItem = prevItems[currentActiveIndex];
       const newIndex = prevActiveItem ? items.findIndex((item) => item.id === prevActiveItem.id) : -1;
 
       if (newIndex !== -1) {
-        if (newIndex !== activeIndex) {
+        if (newIndex !== currentActiveIndex) {
           isUpdatingItemsRef.current = true;
           const viewport = viewportRef.current;
           if (viewport) {
@@ -112,14 +122,14 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
           setActiveIndex(newIndex);
           lastIndexRef.current = newIndex;
 
-          const timer = setTimeout(() => {
+          itemsChangeTimerRef.current = setTimeout(() => {
             isUpdatingItemsRef.current = false;
+            itemsChangeTimerRef.current = null;
           }, 50);
-          return () => clearTimeout(timer);
         }
       } else {
         // Active item was filtered out or doesn't exist anymore; adjust to nearest valid index
-        const fallbackIndex = items.length > 0 ? Math.min(activeIndex, items.length - 1) : 0;
+        const fallbackIndex = items.length > 0 ? Math.min(currentActiveIndex, items.length - 1) : 0;
         
         isUpdatingItemsRef.current = true;
         const viewport = viewportRef.current;
@@ -139,13 +149,20 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
         setActiveIndex(fallbackIndex);
         lastIndexRef.current = fallbackIndex;
 
-        const timer = setTimeout(() => {
+        itemsChangeTimerRef.current = setTimeout(() => {
           isUpdatingItemsRef.current = false;
+          itemsChangeTimerRef.current = null;
         }, 50);
-        return () => clearTimeout(timer);
       }
     }
-  }, [items, activeIndex, direction]);
+
+    return () => {
+      if (itemsChangeTimerRef.current) {
+        clearTimeout(itemsChangeTimerRef.current);
+        itemsChangeTimerRef.current = null;
+      }
+    };
+  }, [items, direction]);
 
   // Sync initial mute prop change
   useEffect(() => {

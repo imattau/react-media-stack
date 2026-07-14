@@ -18,6 +18,8 @@ interface VideoCacheContextType {
     activeIndex: number,
     options: { preFetchAhead: number; preFetchBehind: number; cacheLimit: number }
   ) => void;
+  markInUse: (src: string) => void;
+  markNotInUse: (src: string) => void;
   clearCache: () => void;
 }
 
@@ -50,6 +52,9 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
   // Tier 2 Store: Object URLs and timestamps
   const objectUrlMap = useRef<Map<string, { objectUrl: string; timestamp: number }>>(new Map());
 
+  // Track which src keys are currently loaded by visible media items
+  const inUseSrcs = useRef<Set<string>>(new Set());
+
   const savePlaybackState = useCallback((id: string | number, state: Partial<PlaybackState>) => {
     const existing = playbackStateStore.current.get(id) || {
       currentTime: 0,
@@ -61,6 +66,14 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
 
   const getPlaybackState = useCallback((id: string | number) => {
     return playbackStateStore.current.get(id);
+  }, []);
+
+  const markInUse = useCallback((src: string) => {
+    inUseSrcs.current.add(src);
+  }, []);
+
+  const markNotInUse = useCallback((src: string) => {
+    inUseSrcs.current.delete(src);
   }, []);
 
   const getMediaUrl = useCallback((src: string) => {
@@ -77,11 +90,12 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
   const enforceLRULimit = useCallback((limit: number) => {
     if (objectUrlMap.current.size <= limit) return;
 
-    // Sort entries by timestamp ascending (oldest first)
-    const entries = Array.from(objectUrlMap.current.entries());
+    // Sort entries by timestamp ascending (oldest first), excluding in-use sources
+    const entries = Array.from(objectUrlMap.current.entries())
+      .filter(([src]) => !inUseSrcs.current.has(src));
     entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
 
-    const excessCount = objectUrlMap.current.size - limit;
+    const excessCount = Math.min(objectUrlMap.current.size - limit, entries.length);
     for (let i = 0; i < excessCount; i++) {
       const [src, data] = entries[i];
       // Revoke the object URL to release the browser's video stream memory
@@ -133,7 +147,7 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
             enforceLRULimit(config.limit);
           })
           .catch((err) => {
-            console.warn(`[MediaCache] Failed to prefetch ${src}:`, err);
+            console.log(`[MediaCache] Cache pre-fetch bypassed (will stream directly): ${src}`, err);
           });
       }
     },
@@ -155,6 +169,8 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
         getPlaybackState,
         getMediaUrl,
         preloadIndices,
+        markInUse,
+        markNotInUse,
         clearCache,
       }}
     >
