@@ -95,7 +95,6 @@
   width: 100cqh;
   height: 100cqw;
   transform: rotate(90deg);
-  object-fit: cover;
 }
 
 /* Loading state */
