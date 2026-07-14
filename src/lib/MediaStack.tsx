@@ -48,8 +48,19 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   activeIndexRef.current = activeIndex;
   const isFirstRender = useRef(true);
   const isUpdatingItemsRef = useRef(false);
+  const isProgrammaticScrollingRef = useRef(false);
+  const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { preloadIndices } = useVideoCache();
+
+  // Clean up programmatic scroll timer on unmount
+  useEffect(() => {
+    return () => {
+      if (programmaticScrollTimerRef.current) {
+        clearTimeout(programmaticScrollTimerRef.current);
+      }
+    };
+  }, []);
 
   // Sync onActiveIndexChange callback on activeIndex updates
   useEffect(() => {
@@ -65,6 +76,11 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   const scrollToIndex = useCallback((index: number) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+
+    if (programmaticScrollTimerRef.current) {
+      clearTimeout(programmaticScrollTimerRef.current);
+    }
+    isProgrammaticScrollingRef.current = true;
 
     if (typeof viewport.scrollTo === 'function') {
       if (direction === 'vertical') {
@@ -82,6 +98,11 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
       }
     }
     setActiveIndex(index);
+
+    programmaticScrollTimerRef.current = setTimeout(() => {
+      isProgrammaticScrollingRef.current = false;
+      programmaticScrollTimerRef.current = null;
+    }, 800);
   }, [direction]);
 
   // Keep activeIndex and scroll position synchronized when items list changes (e.g. prepended items or filtered list)
@@ -217,7 +238,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
 
   // Handle scroll events to detect active item
   const handleScroll = () => {
-    if (isUpdatingItemsRef.current) return;
+    if (isUpdatingItemsRef.current || isProgrammaticScrollingRef.current) return;
 
     const viewport = viewportRef.current;
     if (!viewport) return;
