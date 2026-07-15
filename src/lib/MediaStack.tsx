@@ -51,7 +51,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   const isProgrammaticScrollingRef = useRef(false);
   const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { preloadIndices } = useVideoCache();
+  const { preloadIndices, clearCache } = useVideoCache();
 
   // Clean up programmatic scroll timer on unmount
   useEffect(() => {
@@ -267,6 +267,42 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     setAreOverlaysHidden((prev) => !prev);
   };
 
+  const destroyStack = useCallback(() => {
+    if (programmaticScrollTimerRef.current) {
+      clearTimeout(programmaticScrollTimerRef.current);
+      programmaticScrollTimerRef.current = null;
+    }
+
+    if (itemsChangeTimerRef.current) {
+      clearTimeout(itemsChangeTimerRef.current);
+      itemsChangeTimerRef.current = null;
+    }
+
+    isProgrammaticScrollingRef.current = false;
+    isUpdatingItemsRef.current = false;
+
+    const viewport = viewportRef.current;
+    if (viewport) {
+      viewport.querySelectorAll('video').forEach((video) => {
+        video.pause();
+        video.removeAttribute('src');
+        try {
+          video.load();
+        } catch {
+          // ignore load failures during teardown
+        }
+      });
+    }
+
+    clearCache();
+  }, [clearCache]);
+
+  useEffect(() => {
+    return () => {
+      destroyStack();
+    };
+  }, [destroyStack]);
+
   useImperativeHandle(ref, () => ({
     scrollTo: (target: 'start' | 'end' | 'next' | 'last') => {
       let targetIndex = activeIndex;
@@ -289,8 +325,9 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
       
       targetIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
       scrollToIndex(targetIndex);
-    }
-  }), [activeIndex, scrollDirection, items.length, scrollToIndex]);
+    },
+    destroy: destroyStack,
+  }), [activeIndex, scrollDirection, items.length, scrollToIndex, destroyStack]);
 
   const handleVideoEnded = useCallback((_item: MediaItemData, index: number) => {
     // Fire consumer callback if provided

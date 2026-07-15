@@ -53,6 +53,15 @@ The main scrolling viewport wrapper.
 | `onCommentClick` | `(item: MediaItemData) => void` | `undefined` | Callback for the Reply/Comment button. |
 | `renderCustomOverlay` | `(item, index, isActive) => ReactNode` | `undefined` | Overrides the default layout overlays with custom code components. |
 
+### `MediaStackRef`
+
+The forwarded ref exposes imperative control methods:
+
+| Method | Description |
+| :--- | :--- |
+| `scrollTo(target)` | Jumps to the start, end, next, or previous item. |
+| `destroy()` | Releases internal timers, cached media URLs, and active playback state. |
+
 ---
 
 ### `MediaItemData` Schema

@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MediaStack } from '../MediaStack';
 import type { MediaItemData, MediaStackRef } from '../types';
 
@@ -32,6 +32,10 @@ describe('MediaStack Component', () => {
         blob: () => Promise.resolve(new Blob(['video-content'], { type: 'video/mp4' })),
       } as Response)
     );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('renders all media items in the viewport', () => {
@@ -338,6 +342,39 @@ describe('MediaStack Component', () => {
       ref.current?.scrollTo('next');
     });
     expect(mockActiveIndexChange).toHaveBeenLastCalledWith(0);
+  });
+
+  it('exposes a destroy helper on the imperative ref', () => {
+    const ref = React.createRef<MediaStackRef>();
+
+    render(<MediaStack items={[testItems[0]]} ref={ref} />);
+
+    expect(typeof ref.current?.destroy).toBe('function');
+  });
+
+  it('releases cached object URLs when the stack unmounts', async () => {
+    const createObjectUrlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:media-stack-test');
+    const revokeObjectUrlSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    const { unmount } = render(
+      <MediaStack
+        items={[
+          {
+            id: 'video-cache',
+            type: 'video',
+            src: 'https://example.com/cache-test.mp4',
+          },
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(createObjectUrlSpy).toHaveBeenCalled();
+    });
+
+    unmount();
+
+    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:media-stack-test');
   });
 
   it('stabilizes activeIndex and prevents video reset when items are prepended in the background', () => {
