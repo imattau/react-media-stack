@@ -49,6 +49,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   const isFirstRender = useRef(true);
   const isUpdatingItemsRef = useRef(false);
   const isProgrammaticScrollingRef = useRef(false);
+  const programmaticTargetRef = useRef<number | null>(null);
   const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { preloadIndices, clearCache } = useVideoCache();
@@ -80,30 +81,34 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     if (programmaticScrollTimerRef.current) {
       clearTimeout(programmaticScrollTimerRef.current);
     }
+    const targetIndex = Math.max(0, Math.min(items.length - 1, index));
+    if (items.length === 0) return;
     isProgrammaticScrollingRef.current = true;
+    programmaticTargetRef.current = targetIndex;
 
     if (typeof viewport.scrollTo === 'function') {
       if (direction === 'vertical') {
         const height = viewport.clientHeight;
         viewport.scrollTo({
-          top: index * height,
+          top: targetIndex * height,
           behavior: 'smooth',
         });
       } else {
         const width = viewport.clientWidth;
         viewport.scrollTo({
-          left: index * width,
+          left: targetIndex * width,
           behavior: 'smooth',
         });
       }
     }
-    setActiveIndex(index);
+    setActiveIndex(targetIndex);
 
     programmaticScrollTimerRef.current = setTimeout(() => {
       isProgrammaticScrollingRef.current = false;
+      programmaticTargetRef.current = null;
       programmaticScrollTimerRef.current = null;
     }, 800);
-  }, [direction]);
+  }, [direction, items.length]);
 
   // Keep activeIndex and scroll position synchronized when items list changes (e.g. prepended items or filtered list)
   const prevItemsRef = useRef(items);
@@ -238,7 +243,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
 
   // Handle scroll events to detect active item
   const handleScroll = () => {
-    if (isUpdatingItemsRef.current || isProgrammaticScrollingRef.current) return;
+    if (isUpdatingItemsRef.current) return;
 
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -252,6 +257,21 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
       const scrollLeft = viewport.scrollLeft;
       const width = viewport.clientWidth;
       index = Math.round(scrollLeft / (width || 1));
+    }
+
+    if (isProgrammaticScrollingRef.current) {
+      if (index === programmaticTargetRef.current) {
+        isProgrammaticScrollingRef.current = false;
+        programmaticTargetRef.current = null;
+        if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
+        programmaticScrollTimerRef.current = null;
+        return;
+      }
+      // A different snapped index means the user interrupted the animation.
+      isProgrammaticScrollingRef.current = false;
+      programmaticTargetRef.current = null;
+      if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
+      programmaticScrollTimerRef.current = null;
     }
 
     if (index >= 0 && index < items.length && index !== activeIndex) {
@@ -361,6 +381,10 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     }
   };
 
+  const duplicateItemIds = new Set(
+    items.map((item) => item.id).filter((id, index, all) => all.indexOf(id) !== index),
+  );
+
   return (
     <div className="media-stack-container rvf:relative">
       {/* Scroll Viewport */}
@@ -371,8 +395,9 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
       >
         {items.map((item, index) => (
           <MediaItem
-            key={item.id}
+            key={`${String(item.id)}-${index}`}
             item={item}
+            stateKey={duplicateItemIds.has(item.id) ? `${String(item.id)}::${index}` : item.id}
             index={index}
             isActive={index === activeIndex}
             shouldLoad={Math.abs(index - activeIndex) <= 1}

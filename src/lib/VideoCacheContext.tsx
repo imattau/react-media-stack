@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useRef, useCallback, useEffect, useState } from 'react';
 
 export interface PlaybackState {
   currentTime: number;
@@ -15,6 +15,7 @@ interface VideoCacheContextType {
   
   // Tier 2 Methods
   getMediaUrl: (src: string) => string;
+  cacheVersion: number;
   preloadIndices: (
     items: { id: string | number; src: string; type: 'video' | 'image' }[],
     activeIndex: number,
@@ -63,9 +64,12 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
 
   // Tier 2 Store: Object URLs and timestamps
   const objectUrlMap = useRef<Map<string, { objectUrl: string; timestamp: number }>>(new Map());
+  const inFlightFetches = useRef<Map<string, AbortController>>(new Map());
+  const cacheGeneration = useRef(0);
+  const [cacheVersion, setCacheVersion] = useState(0);
 
   // Track which src keys are currently loaded by visible media items
-  const inUseSrcs = useRef<Set<string>>(new Set());
+  const inUseSrcs = useRef<Map<string, number>>(new Map());
 
   const savePlaybackState = useCallback((id: string | number, state: Partial<PlaybackState>) => {
     const existing = playbackStateStore.current.get(id) || {
@@ -102,11 +106,13 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
   }, []);
 
   const markInUse = useCallback((src: string) => {
-    inUseSrcs.current.add(src);
+    inUseSrcs.current.set(src, (inUseSrcs.current.get(src) ?? 0) + 1);
   }, []);
 
   const markNotInUse = useCallback((src: string) => {
-    inUseSrcs.current.delete(src);
+    const count = inUseSrcs.current.get(src) ?? 0;
+    if (count <= 1) inUseSrcs.current.delete(src);
+    else inUseSrcs.current.set(src, count - 1);
   }, []);
 
   const getMediaUrl = useCallback((src: string) => {
@@ -161,13 +167,17 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
 
         const src = item.src;
         // Asynchronously pre-fetch video files and store them in memory as Object URLs
-        fetch(src)
+        if (inFlightFetches.current.has(src)) continue;
+        const controller = new AbortController();
+        const generation = cacheGeneration.current;
+        inFlightFetches.current.set(src, controller);
+        fetch(src, { signal: controller.signal })
           .then((res) => {
             if (!res.ok) throw new Error('Fetch failed');
             return res.blob();
           })
           .then((blob) => {
-            if (objectUrlMap.current.has(src)) return; // Prevent race conditions
+            if (generation !== cacheGeneration.current || objectUrlMap.current.has(src)) return;
             
             const objectUrl = URL.createObjectURL(blob);
             objectUrlMap.current.set(src, {
@@ -175,12 +185,22 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
               timestamp: Date.now(),
             });
             console.log(`[MediaCache] Pre-fetched video blob: ${src}`);
+            setCacheVersion((version) => version + 1);
             
             // Re-enforce size boundaries
             enforceLRULimit(config.limit);
           })
           .catch((err) => {
-            console.log(`[MediaCache] Cache pre-fetch bypassed (will stream directly): ${src}`, err);
+            // Prefetching is an optional optimisation. Cross-origin media without
+            // CORS headers (and transient network failures) cannot be read by
+            // fetch, but the video element can still stream the original URL.
+            const reason = err instanceof Error ? err.message : String(err);
+            console.debug(`[MediaCache] Cache pre-fetch bypassed; streaming directly: ${src} (${reason})`);
+          })
+          .finally(() => {
+            if (inFlightFetches.current.get(src) === controller) {
+              inFlightFetches.current.delete(src);
+            }
           });
       }
     },
@@ -188,11 +208,16 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
   );
 
   const clearCache = useCallback(() => {
+    cacheGeneration.current += 1;
+    inFlightFetches.current.forEach((controller) => controller.abort());
+    inFlightFetches.current.clear();
     objectUrlMap.current.forEach((data) => {
       URL.revokeObjectURL(data.objectUrl);
     });
     objectUrlMap.current.clear();
     playbackStateStore.current.clear();
+    inUseSrcs.current.clear();
+    setCacheVersion((version) => version + 1);
 
     if (activePlaybackRecord?.ownerId === providerIdRef.current) {
       activePlaybackRecord = null;
@@ -213,6 +238,7 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
         requestExclusivePlayback,
         releaseExclusivePlayback,
         getMediaUrl,
+        cacheVersion,
         preloadIndices,
         markInUse,
         markNotInUse,

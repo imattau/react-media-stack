@@ -473,8 +473,8 @@ describe('MediaStack Component', () => {
     const playingVideos = videos.filter(v => v._testIsPlaying);
     expect(playingVideos).toHaveLength(1);
 
-    const firstVideo = videos.find(v => v.src.includes('v1.mp4'));
-    const secondVideo = videos.find(v => v.src.includes('v2.mp4'));
+    const firstVideo = videos.find(v => v.dataset.mediaSrc?.includes('v1.mp4'));
+    const secondVideo = videos.find(v => v.dataset.mediaSrc?.includes('v2.mp4'));
 
     expect(firstVideo?._testIsPlaying).not.toBe(true);
     expect(secondVideo?._testIsPlaying).toBe(true);
