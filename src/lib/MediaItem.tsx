@@ -82,7 +82,15 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   const hlsSrcRef = useRef<string | null>(null);
   const loadedSrcRef = useRef<string | null>(null);
 
-  const { getPlaybackState, savePlaybackState, getMediaUrl, markInUse, markNotInUse } = useVideoCache();
+  const {
+    getPlaybackState,
+    savePlaybackState,
+    getMediaUrl,
+    markInUse,
+    markNotInUse,
+    requestExclusivePlayback,
+    releaseExclusivePlayback,
+  } = useVideoCache();
 
   // Tier 1 Restore Playback Micro-state on mount
   const cachedState = getPlaybackState(item.id);
@@ -104,6 +112,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           captionExpanded: captionExpandedRef.current,
         });
         video.pause();
+        releaseExclusivePlayback(video);
         if (hlsRef.current) {
           hlsRef.current.destroy();
           hlsRef.current = null;
@@ -118,7 +127,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       videoRef.current = null;
       loadedSrcRef.current = null;
     }
-  }, [item.id, savePlaybackState]);
+  }, [item.id, savePlaybackState, releaseExclusivePlayback]);
 
   // Long Press to Hide Overlays States & Refs
   const [localAreOverlaysHidden, setLocalAreOverlaysHidden] = useState(false);
@@ -236,8 +245,10 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           captionExpanded,
         });
         video.pause();
+        releaseExclusivePlayback(video);
         setIsPlaying(false);
       } else if (autoPlay) {
+        requestExclusivePlayback(video);
         const playPromise = video.play();
         if (playPromise !== undefined) {
           playPromise
@@ -246,12 +257,14 @@ export const MediaItem: React.FC<MediaItemProps> = ({
             })
             .catch((err) => {
               console.log('Autoplay prevented or interrupted:', err);
+              releaseExclusivePlayback(video);
               setIsPlaying(false);
             });
         }
       } else {
         // autoPlay explicitly set to false — don't auto-play
         video.pause();
+        releaseExclusivePlayback(video);
         setIsPlaying(false);
       }
     } else {
@@ -263,6 +276,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
       // Release resources
       video.pause();
+      releaseExclusivePlayback(video);
       setIsPlaying(false);
       
       if (hlsRef.current) {
@@ -280,6 +294,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
       if (video) {
         markNotInUse(item.src);
         video.pause();
+        releaseExclusivePlayback(video);
         if (!shouldLoad || !isMountedRef.current) {
           video.removeAttribute('src');
           try {
@@ -295,7 +310,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         hlsRef.current = null;
       }
     };
-  }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, markInUse, markNotInUse, captionExpanded, isNsfwBlurred]);
+  }, [isActive, shouldLoad, autoPlay, muted, item.type, item.src, item.id, getMediaUrl, getPlaybackState, savePlaybackState, markInUse, markNotInUse, captionExpanded, isNsfwBlurred, requestExclusivePlayback, releaseExclusivePlayback]);
 
   // Sync mute state
   useEffect(() => {
@@ -406,13 +421,21 @@ export const MediaItem: React.FC<MediaItemProps> = ({
 
     if (isPlaying) {
       video.pause();
+      releaseExclusivePlayback(video);
       setIsPlaying(false);
       triggerFeedback('pause');
     } else {
-      video.play().then(() => {
-        setIsPlaying(true);
-        triggerFeedback('play');
-      });
+      requestExclusivePlayback(video);
+      video.play()
+        .then(() => {
+          setIsPlaying(true);
+          triggerFeedback('play');
+        })
+        .catch((err) => {
+          console.log('Playback prevented or interrupted:', err);
+          releaseExclusivePlayback(video);
+          setIsPlaying(false);
+        });
     }
   };
 
@@ -493,8 +516,16 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               onWaiting={() => setIsLoading(true)}
               onPlay={(e) => {
                 const vid = e.currentTarget;
+                requestExclusivePlayback(vid);
                 if (!isActive) {
                   vid.pause();
+                }
+              }}
+              onPause={(e) => {
+                const vid = e.currentTarget;
+                releaseExclusivePlayback(vid);
+                if (isMountedRef.current && videoRef.current === vid) {
+                  setIsPlaying(false);
                 }
               }}
               onPlaying={(e) => {
@@ -699,7 +730,14 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                   setIsNsfwBlurred(false);
                   const video = videoRef.current;
                   if (video && item.type === 'video' && isActive) {
-                    video.play().then(() => setIsPlaying(true));
+                    requestExclusivePlayback(video);
+                    video.play()
+                      .then(() => setIsPlaying(true))
+                      .catch((err) => {
+                        console.log('Playback prevented or interrupted:', err);
+                        releaseExclusivePlayback(video);
+                        setIsPlaying(false);
+                      });
                   }
                 }}
                 className="rvf:bg-white rvf:text-black rvf:text-[10px] rvf:font-bold rvf:px-4 rvf:py-2 rvf:rounded-full rvf:hover:bg-gray-200 rvf:transition-colors rvf:cursor-pointer shadow-md"

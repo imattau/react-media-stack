@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useRef, useCallback, useEffect } from 'react';
 
 export interface PlaybackState {
   currentTime: number;
@@ -10,6 +10,8 @@ interface VideoCacheContextType {
   // Tier 1 Methods
   savePlaybackState: (id: string | number, state: Partial<PlaybackState>) => void;
   getPlaybackState: (id: string | number) => PlaybackState | undefined;
+  requestExclusivePlayback: (video: HTMLVideoElement) => void;
+  releaseExclusivePlayback: (video: HTMLVideoElement) => void;
   
   // Tier 2 Methods
   getMediaUrl: (src: string) => string;
@@ -24,6 +26,14 @@ interface VideoCacheContextType {
 }
 
 const VideoCacheContext = createContext<VideoCacheContextType | null>(null);
+
+type ActivePlaybackRecord = {
+  video: HTMLVideoElement;
+  ownerId: symbol;
+};
+
+// Shared across all providers so the exclusivity guarantee spans the entire page.
+let activePlaybackRecord: ActivePlaybackRecord | null = null;
 
 export const useVideoCache = () => {
   const context = useContext(VideoCacheContext);
@@ -46,6 +56,8 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
   preFetchBehind = 1,
   cacheLimit = 8,
 }) => {
+  const providerIdRef = useRef(Symbol('video-cache-provider'));
+
   // Tier 1 Store: Playback and UI states
   const playbackStateStore = useRef<Map<string | number, PlaybackState>>(new Map());
 
@@ -66,6 +78,27 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
 
   const getPlaybackState = useCallback((id: string | number) => {
     return playbackStateStore.current.get(id);
+  }, []);
+
+  const requestExclusivePlayback = useCallback((video: HTMLVideoElement) => {
+    const current = activePlaybackRecord?.video;
+    if (current && current !== video) {
+      try {
+        current.pause();
+      } catch {
+        // ignore pause failures from detached or unsupported elements
+      }
+    }
+    activePlaybackRecord = {
+      video,
+      ownerId: providerIdRef.current,
+    };
+  }, []);
+
+  const releaseExclusivePlayback = useCallback((video: HTMLVideoElement) => {
+    if (activePlaybackRecord?.video === video && activePlaybackRecord.ownerId === providerIdRef.current) {
+      activePlaybackRecord = null;
+    }
   }, []);
 
   const markInUse = useCallback((src: string) => {
@@ -160,20 +193,32 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
     });
     objectUrlMap.current.clear();
     playbackStateStore.current.clear();
+
+    if (activePlaybackRecord?.ownerId === providerIdRef.current) {
+      activePlaybackRecord = null;
+    }
   }, []);
+
+  useEffect(() => {
+    return () => {
+      clearCache();
+    };
+  }, [clearCache]);
 
   return (
     <VideoCacheContext.Provider
       value={{
         savePlaybackState,
         getPlaybackState,
+        requestExclusivePlayback,
+        releaseExclusivePlayback,
         getMediaUrl,
         preloadIndices,
         markInUse,
         markNotInUse,
         clearCache,
       }}
-    >
+      >
       {children}
     </VideoCacheContext.Provider>
   );

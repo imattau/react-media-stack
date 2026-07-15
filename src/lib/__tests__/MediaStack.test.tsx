@@ -401,6 +401,49 @@ describe('MediaStack Component', () => {
     }
   });
 
+  it('pauses the previous active video when playback switches to another item', async () => {
+    const ref = React.createRef<MediaStackRef>();
+    const playSpy = vi.fn().mockImplementation(function(this: any) {
+      this._testIsPlaying = true;
+      return Promise.resolve();
+    });
+    const pauseSpy = vi.fn().mockImplementation(function(this: any) {
+      this._testIsPlaying = false;
+    });
+    HTMLVideoElement.prototype.play = playSpy;
+    HTMLVideoElement.prototype.pause = pauseSpy;
+
+    const { container } = render(
+      <MediaStack
+        ref={ref}
+        items={[
+          { id: 'v1', type: 'video', src: 'https://example.com/v1.mp4' },
+          { id: 'v2', type: 'video', src: 'https://example.com/v2.mp4' }
+        ]}
+        autoPlay={true}
+      />
+    );
+
+    let videos = Array.from(container.querySelectorAll('video')) as any[];
+    expect(videos[0]._testIsPlaying).toBe(true);
+
+    await act(async () => {
+      ref.current?.scrollTo('end');
+      await Promise.resolve();
+    });
+
+    videos = Array.from(container.querySelectorAll('video')) as any[];
+    const playingVideos = videos.filter(v => v._testIsPlaying);
+    expect(playingVideos).toHaveLength(1);
+
+    const firstVideo = videos.find(v => v.src.includes('v1.mp4'));
+    const secondVideo = videos.find(v => v.src.includes('v2.mp4'));
+
+    expect(firstVideo?._testIsPlaying).not.toBe(true);
+    expect(secondVideo?._testIsPlaying).toBe(true);
+    expect(pauseSpy).toHaveBeenCalled();
+  });
+
   it('ensures only the correct active video plays when items are prepended in the background', () => {
     const playSpy = vi.fn().mockImplementation(function(this: any) {
       this._testIsPlaying = true;
