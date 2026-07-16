@@ -807,6 +807,8 @@ export const MediaItem: React.FC<MediaItemProps> = ({
               src={item.poster}
               className="media-stack-media cover"
               alt=""
+              loading="lazy"
+              decoding="async"
               style={{ opacity: 0.15, filter: 'blur(10px)' }}
             />
           )}

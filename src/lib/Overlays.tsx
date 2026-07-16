@@ -109,6 +109,8 @@ export const ExpandableCaption: React.FC<ExpandableCaptionProps> = ({
             <img
               src={authorAvatarUrl}
               alt={authorName || 'Author avatar'}
+              loading="lazy"
+              decoding="async"
               className="rvf:w-7 rvf:h-7 rvf:rounded-full rvf:border rvf:border-white/10 rvf:object-cover rvf:shrink-0"
             />
           )}
