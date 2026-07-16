@@ -263,6 +263,11 @@ export const MediaItem: React.FC<MediaItemProps> = ({
             .then(() => {
               if (requestId === playbackRequestRef.current && videoRef.current === video && isActive) {
                 setIsPlaying(true);
+              } else {
+                // Scrolled away, superseded, or unmounted while play() was resolving —
+                // the browser started playback before we could cancel it, so stop it now.
+                video.pause();
+                releaseExclusivePlayback(video);
               }
             })
             .catch((err) => {
@@ -442,6 +447,9 @@ export const MediaItem: React.FC<MediaItemProps> = ({
           if (requestId === playbackRequestRef.current && videoRef.current === video) {
             setIsPlaying(true);
             triggerFeedback('play');
+          } else {
+            video.pause();
+            releaseExclusivePlayback(video);
           }
         })
         .catch((err) => {
@@ -764,13 +772,23 @@ export const MediaItem: React.FC<MediaItemProps> = ({
                   setIsNsfwBlurred(false);
                   const video = videoRef.current;
                   if (video && item.type === 'video' && isActive) {
+                    const requestId = ++playbackRequestRef.current;
                     requestExclusivePlayback(video);
                     video.play()
-                      .then(() => setIsPlaying(true))
+                      .then(() => {
+                        if (requestId === playbackRequestRef.current && videoRef.current === video && isActive) {
+                          setIsPlaying(true);
+                        } else {
+                          video.pause();
+                          releaseExclusivePlayback(video);
+                        }
+                      })
                       .catch((err) => {
                         console.log('Playback prevented or interrupted:', err);
-                        releaseExclusivePlayback(video);
-                        setIsPlaying(false);
+                        if (requestId === playbackRequestRef.current) {
+                          releaseExclusivePlayback(video);
+                          setIsPlaying(false);
+                        }
                       });
                   }
                 }}
