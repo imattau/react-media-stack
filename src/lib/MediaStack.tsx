@@ -74,7 +74,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     }
   }, [activeIndex, onActiveIndexChange]);
 
-  const scrollToIndex = useCallback((index: number) => {
+  const scrollToIndex = useCallback((index: number, smooth = true) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
 
@@ -89,25 +89,32 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     if (typeof viewport.scrollTo === 'function') {
       if (direction === 'vertical') {
         const height = viewport.clientHeight;
-        viewport.scrollTo({
-          top: targetIndex * height,
-          behavior: 'smooth',
-        });
+        if (smooth) {
+          viewport.scrollTo({ top: targetIndex * height, behavior: 'smooth' });
+        } else {
+          viewport.scrollTop = targetIndex * height;
+        }
       } else {
         const width = viewport.clientWidth;
-        viewport.scrollTo({
-          left: targetIndex * width,
-          behavior: 'smooth',
-        });
+        if (smooth) {
+          viewport.scrollTo({ left: targetIndex * width, behavior: 'smooth' });
+        } else {
+          viewport.scrollLeft = targetIndex * width;
+        }
       }
     }
     setActiveIndex(targetIndex);
 
-    programmaticScrollTimerRef.current = setTimeout(() => {
+    if (smooth) {
+      programmaticScrollTimerRef.current = setTimeout(() => {
+        isProgrammaticScrollingRef.current = false;
+        programmaticTargetRef.current = null;
+        programmaticScrollTimerRef.current = null;
+      }, 800);
+    } else {
       isProgrammaticScrollingRef.current = false;
       programmaticTargetRef.current = null;
-      programmaticScrollTimerRef.current = null;
-    }, 800);
+    }
   }, [direction, items.length]);
 
   // Keep activeIndex and scroll position synchronized when items list changes (e.g. prepended items or filtered list)
@@ -345,6 +352,28 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
       
       targetIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
       scrollToIndex(targetIndex);
+    },
+    jumpTo: (target: 'start' | 'end' | 'next' | 'last') => {
+      let targetIndex = activeIndex;
+      const dir = scrollDirection;
+      
+      switch (target) {
+        case 'start':
+          targetIndex = 0;
+          break;
+        case 'end':
+          targetIndex = items.length - 1;
+          break;
+        case 'next':
+          targetIndex = dir === 'forward' ? activeIndex + 1 : activeIndex - 1;
+          break;
+        case 'last':
+          targetIndex = dir === 'forward' ? activeIndex - 1 : activeIndex + 1;
+          break;
+      }
+      
+      targetIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
+      scrollToIndex(targetIndex, false);
     },
     destroy: destroyStack,
   }), [activeIndex, scrollDirection, items.length, scrollToIndex, destroyStack]);

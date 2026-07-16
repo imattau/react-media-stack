@@ -53,5 +53,6 @@ export interface MediaStackProps {
 
 export interface MediaStackRef {
   scrollTo: (target: 'start' | 'end' | 'next' | 'last') => void;
+  jumpTo: (target: 'start' | 'end' | 'next' | 'last') => void;
   destroy: () => void;
 }
