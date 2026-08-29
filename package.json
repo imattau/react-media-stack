@@ -1,10 +1,14 @@
 {
   "name": "react-media-stack",
   "private": false,
-  "version": "1.1.1",
+  "version": "1.1.2",
   "license": "LGPL-3.0-or-later",
   "type": "module",
   "description": "High-performance scrolling React media feed library with virtualisation, caching, and custom overlay slots.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/imattau/react-media-stack.git"
+  },
   "main": "./dist/index.umd.js",
   "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
