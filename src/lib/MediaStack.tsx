@@ -429,7 +429,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
             stateKey={duplicateItemIds.has(item.id) ? `${String(item.id)}::${index}` : item.id}
             index={index}
             isActive={index === activeIndex}
-            shouldLoad={Math.abs(index - activeIndex) <= 1}
+            shouldLoad={index >= activeIndex - preFetchBehind && index <= activeIndex + preFetchAhead}
             autoPlay={autoPlay}
             muted={globalMuted}
             loop={loop}
