@@ -8,6 +8,21 @@ interface LogMessage {
   text: string;
 }
 
+// Inline 1600x900 (16:9) landscape SVG with orientation markers, used to visually
+// verify autoRotateLandscape fills the viewport without depending on network video.
+const ROTATE_TEST_IMAGE = `data:image/svg+xml,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900">
+    <rect width="1600" height="900" fill="#1a1a2e"/>
+    <rect x="0" y="0" width="800" height="450" fill="#aa3bff"/>
+    <rect x="800" y="0" width="800" height="450" fill="#00d2ff"/>
+    <rect x="0" y="450" width="800" height="450" fill="#ff2d78"/>
+    <rect x="800" y="450" width="800" height="450" fill="#ffd23b"/>
+    <rect x="0" y="0" width="1600" height="900" fill="none" stroke="white" stroke-width="12"/>
+    <text x="800" y="470" font-family="monospace" font-size="110" fill="white" text-anchor="middle" dominant-baseline="middle">16:9 LANDSCAPE</text>
+    <text x="800" y="580" font-family="monospace" font-size="48" fill="white" text-anchor="middle" dominant-baseline="middle">Corners should touch the screen edges when rotated</text>
+  </svg>
+`)}`;
+
 const SAMPLE_MEDIA: MediaItemData[] = [
   {
     id: 1,
@@ -55,6 +70,18 @@ const SAMPLE_MEDIA: MediaItemData[] = [
     title: 'Urban Playground',
     description: 'High energy skate sequences under ambient metropolitan lighting.',
     badge: 'SPORTS',
+    fit: 'cover',
+  },
+  {
+    // A self-contained 16:9 landscape test card (no network dependency) so
+    // autoRotateLandscape's fill-the-viewport behavior is always visible,
+    // regardless of whether the remote sample videos happen to load.
+    id: 6,
+    type: 'image',
+    src: ROTATE_TEST_IMAGE,
+    title: 'Auto-Rotate Test Card',
+    description: 'Landscape 16:9 test image. With Auto-Rotate Landscape ON, this should fill the screen edge-to-edge with no letterbox gaps.',
+    badge: 'ROTATE TEST',
     fit: 'cover',
   },
 ];
