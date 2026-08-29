@@ -331,53 +331,36 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
     };
   }, [destroyStack]);
 
+  const resolveTargetIndex = useCallback((target: 'start' | 'end' | 'next' | 'last') => {
+    let targetIndex = activeIndex;
+
+    switch (target) {
+      case 'start':
+        targetIndex = 0;
+        break;
+      case 'end':
+        targetIndex = items.length - 1;
+        break;
+      case 'next':
+        targetIndex = scrollDirection === 'forward' ? activeIndex + 1 : activeIndex - 1;
+        break;
+      case 'last':
+        targetIndex = scrollDirection === 'forward' ? activeIndex - 1 : activeIndex + 1;
+        break;
+    }
+
+    return Math.max(0, Math.min(items.length - 1, targetIndex));
+  }, [activeIndex, scrollDirection, items.length]);
+
   useImperativeHandle(ref, () => ({
     scrollTo: (target: 'start' | 'end' | 'next' | 'last') => {
-      let targetIndex = activeIndex;
-      const dir = scrollDirection;
-      
-      switch (target) {
-        case 'start':
-          targetIndex = 0;
-          break;
-        case 'end':
-          targetIndex = items.length - 1;
-          break;
-        case 'next':
-          targetIndex = dir === 'forward' ? activeIndex + 1 : activeIndex - 1;
-          break;
-        case 'last':
-          targetIndex = dir === 'forward' ? activeIndex - 1 : activeIndex + 1;
-          break;
-      }
-      
-      targetIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
-      scrollToIndex(targetIndex);
+      scrollToIndex(resolveTargetIndex(target));
     },
     jumpTo: (target: 'start' | 'end' | 'next' | 'last') => {
-      let targetIndex = activeIndex;
-      const dir = scrollDirection;
-      
-      switch (target) {
-        case 'start':
-          targetIndex = 0;
-          break;
-        case 'end':
-          targetIndex = items.length - 1;
-          break;
-        case 'next':
-          targetIndex = dir === 'forward' ? activeIndex + 1 : activeIndex - 1;
-          break;
-        case 'last':
-          targetIndex = dir === 'forward' ? activeIndex - 1 : activeIndex + 1;
-          break;
-      }
-      
-      targetIndex = Math.max(0, Math.min(items.length - 1, targetIndex));
-      scrollToIndex(targetIndex, false);
+      scrollToIndex(resolveTargetIndex(target), false);
     },
     destroy: destroyStack,
-  }), [activeIndex, scrollDirection, items.length, scrollToIndex, destroyStack]);
+  }), [resolveTargetIndex, scrollToIndex, destroyStack]);
 
   const handleVideoEnded = useCallback((_item: MediaItemData, index: number) => {
     // Fire consumer callback if provided
