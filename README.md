@@ -1,6 +1,6 @@
 # MediaStack 🎬
 
-`media_stack` is a high-performance React library for media (video and image) scroll feeds, supporting both **vertical** and **horizontal** snapping layouts. Engineered specifically for mobile-first scrolling applications (like TikTok feeds, Reels, and carousels), it provides built-in DOM virtualization, smart memory reclamation, and automatic video rotation capabilities.
+`react-media-stack` is a high-performance React library for media (video and image) scroll feeds, supporting both **vertical** and **horizontal** snapping layouts. Engineered specifically for mobile-first scrolling applications (like TikTok feeds, Reels, and carousels), it provides built-in DOM virtualization, smart memory reclamation, and automatic video rotation capabilities.
 
 ## Key Features
 
@@ -17,12 +17,12 @@
 ## Installation
 
 ```bash
-npm install media_stack
+npm install react-media-stack
 ```
 
 Ensure you import the CSS stylesheet in your project root (e.g. `main.tsx` or `App.tsx`):
 ```typescript
-import 'media_stack/dist/assets/index.css';
+import 'react-media-stack/dist/index.css';
 ```
 
 ---
@@ -91,7 +91,7 @@ export interface MediaItemData {
 ### Basic Usage (Vertical Reels Feed)
 
 ```tsx
-import { MediaStack, MediaItemData } from 'media_stack';
+import { MediaStack, MediaItemData } from 'react-media-stack';
 
 const FEEDS: MediaItemData[] = [
   {
@@ -128,7 +128,7 @@ export default function App() {
 ### Advanced (Custom Overlays)
 
 ```tsx
-import { MediaStack } from 'media_stack';
+import { MediaStack } from 'react-media-stack';
 
 export default function CustomApp() {
   return (
