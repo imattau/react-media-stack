@@ -96,6 +96,9 @@
   left: 50%;
   width: 100cqh;
   height: 100cqw;
+  /* Rotation exists to fill a portrait viewport with landscape content; contain
+     would letterbox inside the rotated box, defeating that purpose. */
+  object-fit: cover;
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center;
 }
