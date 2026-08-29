@@ -49,6 +49,8 @@ export interface MediaStackProps {
   autoScroll?: boolean;
   autoScrollInterval?: number;
   onVideoEnded?: (item: MediaItemData, index: number) => void;
+  /** Gate internal library console logging (cache hits/misses, playback interruptions). Off by default. */
+  debug?: boolean;
 }
 
 export interface MediaStackRef {

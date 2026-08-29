@@ -2,7 +2,6 @@ import React, { createContext, useContext, useRef, useCallback, useEffect, useSt
 
 export interface PlaybackState {
   currentTime: number;
-  isMuted: boolean;
   captionExpanded: boolean;
 }
 
@@ -49,6 +48,7 @@ interface VideoCacheProviderProps {
   preFetchAhead?: number;
   preFetchBehind?: number;
   cacheLimit?: number;
+  debug?: boolean;
 }
 
 export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
@@ -56,6 +56,7 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
   preFetchAhead = 2,
   preFetchBehind = 1,
   cacheLimit = 8,
+  debug = false,
 }) => {
   const providerIdRef = useRef(Symbol('video-cache-provider'));
 
@@ -74,7 +75,6 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
   const savePlaybackState = useCallback((id: string | number, state: Partial<PlaybackState>) => {
     const existing = playbackStateStore.current.get(id) || {
       currentTime: 0,
-      isMuted: true,
       captionExpanded: false,
     };
     playbackStateStore.current.set(id, { ...existing, ...state });
@@ -140,9 +140,9 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
       // Revoke the object URL to release the browser's video stream memory
       URL.revokeObjectURL(data.objectUrl);
       objectUrlMap.current.delete(src);
-      console.log(`[MediaCache] Evicted off-screen asset to free memory: ${src}`);
+      if (debug) console.log(`[MediaCache] Evicted off-screen asset to free memory: ${src}`);
     }
-  }, []);
+  }, [debug]);
 
   const preloadIndices = useCallback(
     (
@@ -184,7 +184,7 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
               objectUrl,
               timestamp: Date.now(),
             });
-            console.log(`[MediaCache] Pre-fetched video blob: ${src}`);
+            if (debug) console.log(`[MediaCache] Pre-fetched video blob: ${src}`);
             setCacheVersion((version) => version + 1);
             
             // Re-enforce size boundaries
@@ -195,7 +195,7 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
             // CORS headers (and transient network failures) cannot be read by
             // fetch, but the video element can still stream the original URL.
             const reason = err instanceof Error ? err.message : String(err);
-            console.debug(`[MediaCache] Cache pre-fetch bypassed; streaming directly: ${src} (${reason})`);
+            if (debug) console.debug(`[MediaCache] Cache pre-fetch bypassed; streaming directly: ${src} (${reason})`);
           })
           .finally(() => {
             if (inFlightFetches.current.get(src) === controller) {
@@ -204,7 +204,7 @@ export const VideoCacheProvider: React.FC<VideoCacheProviderProps> = ({
           });
       }
     },
-    [preFetchAhead, preFetchBehind, cacheLimit, enforceLRULimit]
+    [preFetchAhead, preFetchBehind, cacheLimit, enforceLRULimit, debug]
   );
 
   const clearCache = useCallback(() => {

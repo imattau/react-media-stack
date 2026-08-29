@@ -37,6 +37,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
   autoScrollInterval = 5000,
   onVideoEnded,
   onAuthorClick,
+  debug = false,
 }, ref) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -454,6 +455,7 @@ const MediaStackInner = React.forwardRef<MediaStackRef, MediaStackProps>(({
             renderAuthor={renderAuthor}
             showDevHud={showDevHud}
             onVideoEnded={handleVideoEnded}
+            debug={debug}
           />
         ))}
       </div>
@@ -500,6 +502,7 @@ export const MediaStack = React.forwardRef<MediaStackRef, MediaStackProps>((prop
       preFetchAhead={props.preFetchAhead}
       preFetchBehind={props.preFetchBehind}
       cacheLimit={props.cacheLimit}
+      debug={props.debug}
     >
       <MediaStackInner ref={ref} {...props} />
     </VideoCacheProvider>

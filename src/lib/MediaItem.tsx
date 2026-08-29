@@ -34,6 +34,7 @@ interface MediaItemProps {
   onVideoEnded?: (item: MediaItemData, index: number) => void;
   areOverlaysHidden?: boolean;
   onOverlaysHiddenToggle?: () => void;
+  debug?: boolean;
 }
 
 export const MediaItem: React.FC<MediaItemProps> = ({
@@ -66,6 +67,7 @@ export const MediaItem: React.FC<MediaItemProps> = ({
   renderAuthor,
   showDevHud = false,
   onVideoEnded,
+  debug = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isMountedRef = useRef(true);
@@ -153,13 +155,13 @@ export const MediaItem: React.FC<MediaItemProps> = ({
         }
       })
       .catch((err) => {
-        console.log('Playback prevented or interrupted:', err);
+        if (debug) console.log('Playback prevented or interrupted:', err);
         if (requestId === playbackRequestRef.current) {
           releaseExclusivePlayback(video);
           setIsPlaying(false);
         }
       });
-  }, [requestExclusivePlayback, releaseExclusivePlayback, isActive]);
+  }, [requestExclusivePlayback, releaseExclusivePlayback, isActive, debug]);
 
   // Long Press to Hide Overlays States & Refs
   const [localAreOverlaysHidden, setLocalAreOverlaysHidden] = useState(false);
