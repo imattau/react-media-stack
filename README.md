@@ -10,6 +10,7 @@
 - 🎛️ **Granular UI Controls**: Toggle default headers, mute buttons, meta description cards, sidebar widgets, and timelines easily.
 - 🖌️ **Fully Customizable Overlays**: Completely override the overlay UI using custom render functions.
 - 🔊 **Global Audio Sync**: Toggling mute on any video synchronizes volume state across all videos in the stack.
+- ⏯️ **Page-Wide Playback Exclusivity**: Only one video plays at a time across the *entire page*, not just within a single stack — starting playback in one `<MediaStack>` pauses any playing video in another `<MediaStack>` instance mounted elsewhere on the page. This is intentional (mirrors single-video-at-a-time feed UX like TikTok/Reels), but is a global invariant to be aware of if you render multiple independent stacks simultaneously.
 
 ---
 
@@ -59,7 +60,8 @@ The forwarded ref exposes imperative control methods:
 
 | Method | Description |
 | :--- | :--- |
-| `scrollTo(target)` | Jumps to the start, end, next, or previous item. |
+| `scrollTo(target)` | Smoothly scrolls to the start, end, next, or previous item. |
+| `jumpTo(target)` | Instantly (non-animated) jumps to the start, end, next, or previous item. |
 | `destroy()` | Releases internal timers, cached media URLs, and active playback state. |
 
 ---
