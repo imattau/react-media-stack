@@ -29,10 +29,6 @@ export default defineConfig({
           'react-dom': 'ReactDOM',
           'react/jsx-runtime': 'JSX',
         },
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name === 'style.css') return 'index.css';
-          return assetInfo.name || '';
-        },
       },
     },
   },

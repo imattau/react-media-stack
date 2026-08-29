@@ -576,4 +576,142 @@ describe('MediaStack Component', () => {
     // Fallback index should be 1 (index of v2) since index 2 is out of bounds
     expect(mockActiveIndexChange).toHaveBeenCalledWith(1);
   });
+
+  it('only mounts video elements within the configured preFetchAhead/preFetchBehind window', () => {
+    const items: MediaItemData[] = Array.from({ length: 5 }, (_, i) => ({
+      id: `v${i}`,
+      type: 'video',
+      src: `https://example.com/v${i}.mp4`,
+    }));
+
+    const { container } = render(
+      <MediaStack items={items} preFetchAhead={1} preFetchBehind={0} />
+    );
+
+    // activeIndex starts at 0: only index 0 (behind=0) and index 1 (ahead=1) should mount a <video>
+    const mountedSrcs = Array.from(container.querySelectorAll('video')).map(
+      (v) => v.getAttribute('data-media-src')
+    );
+    expect(mountedSrcs).toEqual(
+      expect.arrayContaining(['https://example.com/v0.mp4', 'https://example.com/v1.mp4'])
+    );
+    expect(mountedSrcs).not.toContain('https://example.com/v2.mp4');
+    expect(mountedSrcs).not.toContain('https://example.com/v3.mp4');
+    expect(mountedSrcs).not.toContain('https://example.com/v4.mp4');
+  });
+
+  it('widens the mounted window when preFetchAhead/preFetchBehind are increased', () => {
+    const items: MediaItemData[] = Array.from({ length: 5 }, (_, i) => ({
+      id: `v${i}`,
+      type: 'video',
+      src: `https://example.com/v${i}.mp4`,
+    }));
+
+    const { container } = render(
+      <MediaStack items={items} preFetchAhead={3} preFetchBehind={0} />
+    );
+
+    const mountedSrcs = Array.from(container.querySelectorAll('video')).map(
+      (v) => v.getAttribute('data-media-src')
+    );
+    // preFetchAhead=3 from activeIndex 0 should mount indices 0-3, but not 4
+    expect(mountedSrcs).toEqual(
+      expect.arrayContaining([
+        'https://example.com/v0.mp4',
+        'https://example.com/v1.mp4',
+        'https://example.com/v2.mp4',
+        'https://example.com/v3.mp4',
+      ])
+    );
+    expect(mountedSrcs).not.toContain('https://example.com/v4.mp4');
+  });
+
+  it('exposes a jumpTo ref helper that navigates without invoking the smooth scrollTo API', () => {
+    const ref = React.createRef<MediaStackRef>();
+    const mockActiveIndexChange = vi.fn();
+    const { container } = render(
+      <MediaStack
+        ref={ref}
+        items={[testItems[0], testItems[1], { ...testItems[0], id: '3' }]}
+        onActiveIndexChange={mockActiveIndexChange}
+      />
+    );
+
+    const viewport = container.querySelector('.media-stack-viewport') as HTMLElement;
+    const smoothScrollSpy = vi.fn();
+    viewport.scrollTo = smoothScrollSpy;
+
+    act(() => {
+      ref.current?.jumpTo('next');
+    });
+
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(1);
+    // jumpTo should update scrollTop directly rather than calling the animated scrollTo API
+    expect(smoothScrollSpy).not.toHaveBeenCalled();
+
+    act(() => {
+      ref.current?.scrollTo('next');
+    });
+
+    expect(mockActiveIndexChange).toHaveBeenLastCalledWith(2);
+    expect(smoothScrollSpy).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }));
+  });
+
+  it('synchronizes mute state across all videos when mute is toggled on any item', () => {
+    const videoItems: MediaItemData[] = [
+      { id: 'v1', type: 'video', src: 'https://example.com/v1.mp4' },
+      { id: 'v2', type: 'video', src: 'https://example.com/v2.mp4' },
+    ];
+
+    const { container } = render(<MediaStack items={videoItems} />);
+
+    // Default muted=true, so the button offers to Unmute
+    const muteButtons = screen.getAllByTitle('Unmute');
+    expect(muteButtons).toHaveLength(2);
+
+    act(() => {
+      fireEvent.click(muteButtons[0]);
+    });
+
+    const videos = Array.from(container.querySelectorAll('video')) as HTMLVideoElement[];
+    expect(videos).toHaveLength(2);
+    expect(videos[0].muted).toBe(false);
+    expect(videos[1].muted).toBe(false);
+    expect(screen.getAllByTitle('Mute')).toHaveLength(2);
+  });
+
+  it('suppresses internal cache logging by default and emits it when debug is enabled', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const { unmount } = render(
+      <MediaStack
+        items={[{ id: 'quiet', type: 'video', src: 'https://example.com/quiet.mp4' }]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalled();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('[MediaCache]'));
+    unmount();
+    consoleLogSpy.mockClear();
+
+    render(
+      <MediaStack
+        items={[{ id: 'loud', type: 'video', src: 'https://example.com/loud.mp4' }]}
+        debug
+      />
+    );
+
+    await waitFor(() => {
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('[MediaCache]'));
+    });
+
+    consoleLogSpy.mockRestore();
+  });
 });
